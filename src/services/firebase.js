@@ -28,6 +28,7 @@ import {
   arrayUnion,
   enableIndexedDbPersistence,
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAY9kqryV_1oUbR5N9tN2x-Kt5jY_ecQSE",
@@ -41,6 +42,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+const analytics = getAnalytics(app);
 
 // Habilitar Persistência Offline
 enableIndexedDbPersistence(db).catch((err) => {
@@ -78,4 +80,5 @@ export {
   setDoc,
   arrayUnion,
   enableIndexedDbPersistence,
+  analytics,
 };

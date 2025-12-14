@@ -1,0 +1,227 @@
+Você é um arquiteto de software e desenvolvedor frontend sênior especializado em PWA, Firebase e aplicações web modernas.**
+
+Crie um **PWA completo**, com **experiência de aplicativo mobile e desktop**, totalmente **responsivo**, utilizando tecnologias que funcionem em **GitHub Pages**, com persistência de dados no **Firebase (plano Spark)**.
+
+---
+
+## 🔧 STACK OBRIGATÓRIA
+
+* **HTML5**
+* **Tailwind CSS**
+* **JavaScript ES6+**
+* Framework permitido (escolha UM):
+* **Firebase (Spark Plan)**:
+
+  * Authentication (email/senha)
+  * Firestore
+  * Hosting apenas para backend lógico (Auth/DB)
+* Compatível com **GitHub Pages**
+* PWA:
+
+  * `manifest.json`
+  * `service-worker.js`
+  * Offline básico (cache de assets)
+
+---
+
+## 🧱 ARQUITETURA DO PROJETO
+
+Utilizar uma **arquitetura moderna**, preferencialmente:
+
+* **MVC** ou **MVP**
+* Separação clara de:
+
+  * `views`
+  * `services`
+  * `models`
+  * `stores` (ou state management)
+  * `components`
+  * `pages`
+
+Exemplo de estrutura esperada:
+
+src/
+ ├─ assets/
+ ├─ components/
+ ├─ pages/
+ ├─ services/
+ │   ├─ firebase.js
+ │   ├─ auth.service.js
+ │   ├─ finance.service.js
+ │   └─ tasks.service.js
+ ├─ store/
+ ├─ router/
+ ├─ layouts/
+ ├─ utils/
+ ├─ sw.js
+ └─ main.js
+public/
+ ├─ manifest.json
+ └─ icons/
+
+
+## 🔐 AUTENTICAÇÃO
+
+* Sistema completo de:
+
+  * Login
+  * Cadastro
+  * Logout
+  * Persistência de sessão
+* Firebase Authentication (email/senha)
+* Proteção de rotas
+* Redirecionamento automático após login
+
+---
+
+## 👑 PAINEL ADMIN
+
+Criar um **Painel Administrativo exclusivo** para o administrador:
+
+* **Admin**
+
+  * Email: `lucianosantosseverino@gmail.com`
+  * Senha: `Severino2018@`
+
+⚠️ **IMPORTANTE**:
+
+* O admin **não deve ser definido no frontend**
+* Use **Firebase Custom Claims** ou validação por UID
+* Criar lógica de:
+
+  * `isAdmin === true`
+  * Rotas protegidas para admin
+
+### Funcionalidades do Admin:
+
+* Visualizar usuários cadastrados
+* Visualizar dados financeiros (somente leitura)
+* Acesso a logs básicos
+* Dashboard administrativo
+
+---
+
+## 💰 MÓDULO 1 — PLANEJAMENTO FINANCEIRO
+
+Criar um **Painel Financeiro Completo**, contendo:
+
+### 📌 Funcionalidades
+
+* Cadastro de **despesas**
+
+  * valor
+  * categoria
+  * data
+  * recorrência (opcional)
+* Cadastro de **ganhos**
+* **Lembretes financeiros**
+* Saldo mensal
+* Histórico por mês
+* Filtro por período
+* Categorias personalizadas
+
+### 📊 Dashboard Financeiro
+
+* Cards:
+
+  * Saldo atual
+  * Total de ganhos
+  * Total de despesas
+* Gráficos:
+
+  * Pizza (despesas por categoria)
+  * Linha (evolução mensal)
+  * Barras (ganhos x despesas)
+* Utilizar biblioteca JS leve (Chart.js ou similar)
+
+---
+
+## 📝 MÓDULO 2 — NOTAS RÁPIDAS E TAREFAS
+
+Inspirado no **Microsoft Planner / Google Keep**.
+
+### ✍️ Notas
+
+* Criar, editar e excluir notas
+* Notas rápidas (auto-save)
+* Cores ou etiquetas
+* Pesquisa por texto
+
+### ✅ Tarefas
+
+* Criar tarefas
+* Status:
+
+  * pendente
+  * em andamento
+  * concluída
+* Datas
+* Organização em colunas (kanban)
+* Drag and drop (opcional)
+
+---
+
+## 📱 INTERFACE & UX
+
+* Visual **mobile-first**
+* Layout semelhante a app nativo
+* Menu:
+
+  * Bottom navigation (mobile)
+  * Sidebar (desktop)
+* Hamburger menu responsivo
+* Dark mode
+* Animações suaves
+* Feedback visual (toasts, loaders)
+
+---
+
+## 📦 PWA
+
+* Aplicação instalável
+* Ícones para Android, iOS e Desktop
+* Cache offline básico
+* Atualização automática
+* `display: standalone`
+
+---
+
+## 🔒 SEGURANÇA
+
+* Regras do Firestore:
+
+  * Usuário só acessa seus dados
+  * Admin acessa dados globais
+* Nunca expor chaves sensíveis
+* Validações no frontend e backend (rules)
+
+---
+
+## 🚀 ENTREGA ESPERADA
+
+* Código organizado
+* Comentários claros
+* README.md explicando:
+
+  * Setup
+  * Deploy no GitHub Pages
+  * Configuração do Firebase
+* Aplicação pronta para produção
+* MVP funcional, escalável e moderno
+
+---
+
+## 🧠 OBJETIVO FINAL
+
+Criar um **PWA profissional**, que funcione como:
+
+* App financeiro pessoal
+* Gerenciador de tarefas e notas
+* Painel administrativo
+* 100% responsivo
+* Instalável
+* Compatível com GitHub Pages + Firebase Spark
+
+---
+
+
