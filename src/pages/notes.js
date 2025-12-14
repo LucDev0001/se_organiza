@@ -9,221 +9,223 @@ import { showToast, showConfirm } from "../utils/ui.js";
 export function Notes() {
   const element = document.createElement("div");
   element.className =
-    "flex flex-col h-full bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100";
+    "flex flex-col h-full bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-sans transition-colors duration-300";
+
+  // Ícones SVG inline
+  const icons = {
+    search: '<i class="fas fa-search"></i>',
+    back: '<i class="fas fa-arrow-left"></i>',
+    close: '<i class="fas fa-times"></i>',
+    palette: '<i class="fas fa-palette"></i>',
+    trash: '<i class="fas fa-trash-alt"></i>',
+    copy: '<i class="fas fa-copy"></i>',
+    check: '<i class="fas fa-check"></i>',
+    plus: '<i class="fas fa-plus"></i>',
+    cog: '<i class="fas fa-cog"></i>',
+    bell: '<i class="fas fa-bell"></i>',
+    theme: '<i class="fas fa-adjust"></i>',
+    empty: '<i class="far fa-sticky-note text-6xl text-gray-300 dark:text-gray-600 mb-4"></i>',
+  };
 
   element.innerHTML = `
-        <header class="bg-white dark:bg-gray-800 shadow-sm px-4 sm:px-6 py-4 flex justify-between items-center sticky top-0 z-10">
-            <div class="flex items-center gap-2 sm:gap-4">
-                <button onclick="window.location.hash='/dashboard'" class="text-gray-500 hover:text-indigo-600 transition-colors p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
-                    <i class="fas fa-arrow-left text-xl"></i>
+        <!-- Header -->
+        <header class="bg-white/90 dark:bg-gray-800/90 backdrop-blur-md shadow-sm px-4 sm:px-6 py-3 flex justify-between items-center sticky top-0 z-20 border-b border-gray-200 dark:border-gray-700">
+            <div class="flex items-center gap-3">
+                <button onclick="window.location.hash='/dashboard'" class="text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400 transition-colors p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 active:scale-95">
+                    ${icons.back}
                 </button>
-                <h1 class="text-xl font-bold text-gray-800 dark:text-white">Notas</h1>
+                <h1 class="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Notas</h1>
             </div>
-            <div class="flex items-center gap-2 sm:gap-4">
-                <button id="mobile-search-btn" class="sm:hidden text-gray-500 hover:text-indigo-600 transition-colors p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
-                    <i class="fas fa-search text-xl"></i>
+            
+            <div class="flex items-center gap-2">
+                <!-- Mobile Search -->
+                <button id="mobile-search-btn" class="sm:hidden text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
+                    ${icons.search}
                 </button>
                 
-                <div class="relative hidden sm:block">
-                    <input type="text" id="search-notes" placeholder="Pesquisar..." class="pl-10 pr-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 border-none focus:ring-2 focus:ring-indigo-500 w-full sm:w-64 text-sm outline-none transition-all">
-                    <i class="fas fa-search absolute left-3 top-2.5 text-gray-400"></i>
+                <!-- Desktop Search -->
+                <div class="relative hidden sm:block group">
+                    <input type="text" id="search-notes" placeholder="Pesquisar..." class="pl-10 pr-4 py-2 rounded-full bg-gray-100 dark:bg-gray-700/50 border-transparent focus:bg-white dark:focus:bg-gray-800 border focus:border-indigo-300 dark:focus:border-indigo-700 focus:ring-4 focus:ring-indigo-500/10 w-64 text-sm outline-none transition-all duration-300">
+                    <span class="absolute left-3.5 top-2.5 text-gray-400 group-focus-within:text-indigo-500 transition-colors">
+                        ${icons.search}
+                    </span>
                 </div>
 
-                <button onclick="window.toggleTheme()" class="text-gray-500 hover:text-yellow-500 transition-colors p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
-                    <i class="fas fa-adjust text-xl"></i>
+                <div class="h-6 w-px bg-gray-300 dark:bg-gray-600 mx-1 hidden sm:block"></div>
+
+                <!-- Theme Toggle (Restaurado) -->
+                <button onclick="window.toggleTheme()" class="text-gray-500 hover:text-yellow-500 dark:text-gray-400 dark:hover:text-yellow-400 transition-colors p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
+                    ${icons.theme}
                 </button>
-                <button onclick="window.location.hash='/notifications'" class="text-gray-500 hover:text-indigo-600 transition-colors relative p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
-                    <i class="fas fa-bell text-xl"></i>
-                    <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center">3</span>
+
+                <button onclick="window.location.hash='/notifications'" class="text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400 transition-colors relative p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
+                    ${icons.bell}
+                    <span class="absolute top-1 right-1 bg-red-500 text-white text-[10px] font-bold rounded-full h-2.5 w-2.5 border-2 border-white dark:border-gray-800"></span>
                 </button>
             </div>
         </header>
 
-        <div id="mobile-search-overlay" class="fixed inset-0 bg-white dark:bg-gray-900 z-[55] hidden p-4">
-            <div class="flex items-center gap-2">
-                <button id="close-mobile-search" class="text-gray-500 hover:text-indigo-600 transition-colors">
-                    <i class="fas fa-arrow-left text-xl"></i>
-                </button>
-                <div class="relative flex-1">
-                    <input type="text" id="mobile-search-input" placeholder="Pesquisar notas..." class="w-full pl-10 pr-4 py-3 rounded-lg bg-gray-100 dark:bg-gray-800 border-none focus:ring-2 focus:ring-indigo-500 text-base outline-none">
-                    <i class="fas fa-search absolute left-3 top-3.5 text-gray-400"></i>
-                </div>
+        <!-- Mobile Search Overlay -->
+        <div id="mobile-search-overlay" class="fixed inset-0 bg-white dark:bg-gray-900 z-[60] hidden flex-col">
+            <div class="flex items-center gap-2 p-4 border-b border-gray-200 dark:border-gray-700">
+                <button id="close-mobile-search" class="text-gray-500 p-2">${icons.back}</button>
+                <input type="text" id="mobile-search-input" placeholder="Pesquisar..." class="flex-1 bg-transparent border-none text-lg outline-none text-gray-800 dark:text-white">
             </div>
         </div>
 
-        <main class="flex-1 p-4 sm:p-6 overflow-y-auto custom-scrollbar">
-            <div class="max-w-2xl mx-auto mb-8">
-                <div id="create-note-container" class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden transition-all duration-200">
-                    <div id="create-note-collapsed" class="p-3 text-gray-500 font-medium cursor-text">
-                        Criar uma nota...
+        <main class="flex-1 p-4 sm:p-8 overflow-y-auto custom-scrollbar relative">
+            
+            <!-- Create Note Area -->
+            <div class="max-w-2xl mx-auto mb-10 relative z-10">
+                <div id="create-note-container" class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-all duration-300 overflow-hidden">
+                    
+                    <!-- Collapsed State -->
+                    <div id="create-note-collapsed" class="flex justify-between items-center p-4 cursor-text">
+                        <span class="text-gray-500 dark:text-gray-400 font-medium ml-1">Criar uma nota...</span>
+                        <div class="text-gray-400">${icons.plus}</div>
                     </div>
-                    <div id="create-note-expanded" class="hidden p-4">
-                        <input type="text" id="new-note-title" placeholder="Título" class="w-full bg-transparent font-bold text-lg mb-2 outline-none placeholder-gray-500">
-                        <textarea id="new-note-content" placeholder="Criar uma nota..." rows="5" class="w-full bg-transparent resize-none outline-none placeholder-gray-500"></textarea>
+
+                    <!-- Expanded State -->
+                    <div id="create-note-expanded" class="hidden flex-col">
+                        <input type="text" id="new-note-title" placeholder="Título" class="w-full bg-transparent px-5 pt-5 pb-2 font-bold text-lg text-gray-900 dark:text-white outline-none placeholder-gray-400">
                         
-                        <div class="flex flex-wrap items-center gap-3 mb-2 mt-3">
-                            <select id="new-note-cat" class="text-xs bg-gray-100 dark:bg-gray-700 rounded p-1 border-none outline-none w-full sm:w-auto flex-shrink-0">
-                                <option value="">Sem categoria</option>
-                            </select>
-                            <button id="manage-note-cats" class="text-xs bg-gray-200 dark:bg-gray-600 px-2 py-1 rounded hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors w-full sm:w-auto"><i class="fas fa-cog mr-1"></i>Gerenciar Categorias</button>
+                        <textarea id="new-note-content" placeholder="Escreva sua nota..." rows="3" class="w-full bg-transparent px-5 py-2 resize-none outline-none text-gray-700 dark:text-gray-200 placeholder-gray-400 text-base"></textarea>
+                        
+                        <!-- Footer Actions -->
+                        <div class="flex flex-col sm:flex-row justify-between items-center px-4 py-3 gap-3">
+                            <div class="flex items-center gap-2 overflow-x-auto w-full sm:w-auto py-1 hide-scrollbar" id="color-picker-container"></div>
+                            
+                            <div class="flex items-center gap-3 w-full sm:w-auto justify-end">
+                                <select id="new-note-cat" class="bg-gray-100 dark:bg-gray-700/50 text-xs font-medium py-1.5 px-3 rounded-full border-none outline-none text-gray-600 dark:text-gray-300 cursor-pointer">
+                                    <option value="">Sem etiqueta</option>
+                                </select>
+                                
+                                <button id="close-create-note" class="text-sm font-semibold px-6 py-2 rounded-full bg-indigo-600 text-white hover:bg-indigo-700 shadow-md transition-all">
+                                    Salvar
+                                </button>
+                            </div>
                         </div>
                         
-                        <div class="flex flex-wrap justify-between items-center mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
-                            <div class="flex gap-2 py-2" id="color-picker"> 
-                                </div>
-                            <button id="close-create-note" class="text-sm font-medium px-4 py-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors">Concluir</button>
-                        </div>
+                        <!-- Shortcut for Cats -->
+                        <button id="manage-note-cats-btn" class="absolute top-4 right-4 text-gray-400 hover:text-indigo-500 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm">
+                            ${icons.cog}
+                        </button>
                     </div>
-                    </div>
+                </div>
             </div>
 
-            <div id="notes-grid" class="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4 space-y-4 p-1">
-                </div>
+            <!-- Notes Grid -->
+            <div id="notes-grid" class="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4 space-y-4 pb-20 mx-auto max-w-7xl"></div>
+            
+            <!-- Empty State -->
+            <div id="empty-state" class="hidden flex-col items-center justify-center mt-20 opacity-0 transition-opacity duration-500">
+                ${icons.empty}
+                <p class="text-gray-500 dark:text-gray-400 font-medium">Suas notas aparecerão aqui</p>
+                <button id="create-note-trigger" class="mt-4 text-indigo-600 dark:text-indigo-400 hover:underline text-sm font-medium">Criar nova nota</button>
+            </div>
         </main>
 
-        <div id="edit-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 backdrop-blur-sm p-4">
-            <div id="edit-modal-content" class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-lg sm:max-w-xl md:max-w-2xl p-0 transform transition-all scale-95 opacity-0 overflow-hidden flex flex-col max-h-[90vh]">
-                <div class="p-4 overflow-y-auto flex-1 custom-scrollbar">
-                    <input type="text" id="edit-note-title" placeholder="Título" class="w-full bg-transparent font-bold text-xl mb-3 outline-none placeholder-gray-500">
-                    <textarea id="edit-note-content" placeholder="Nota" class="w-full bg-transparent resize-none outline-none placeholder-gray-500 min-h-[150px]"></textarea>
-                    <select id="edit-note-cat" class="text-sm bg-gray-100 dark:bg-gray-700 rounded p-1 border-none outline-none w-full mt-2">
-                        <option value="">Sem categoria</option>
-                    </select>
-                </div>
-                
-                <div class="p-3 bg-gray-50/50 dark:bg-gray-700/30 flex flex-col sm:flex-row justify-between sm:items-center border-t border-gray-100 dark:border-gray-700 backdrop-blur-sm">
-                    <div class="flex gap-2 pb-2 sm:pb-0" id="edit-color-picker"></div>
-                    
-                    <div class="flex justify-end items-center gap-2 flex-shrink-0">
-                        <span id="save-status" class="text-xs text-gray-400 italic opacity-0 transition-opacity mr-2">Salvo</span>
-                        
-                        <button id="copy-note-btn" class="p-2 text-gray-500 hover:text-indigo-600 rounded-full hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors" title="Copiar conteúdo">
-                            <i class="fas fa-copy"></i>
-                        </button>
-
-                        <button id="delete-note-btn" class="p-2 text-gray-500 hover:text-red-600 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors" title="Excluir"><i class="fas fa-trash"></i></button>
-                        
-                        <button id="close-modal-btn" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium transition-colors">Concluir</button>
+        <!-- Edit Modal -->
+        <div id="edit-modal" class="fixed inset-0 z-[100] hidden" aria-hidden="true">
+            <div id="edit-modal-backdrop" class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity opacity-0"></div>
+            <div class="fixed inset-0 z-10 overflow-y-auto">
+                <div class="flex min-h-full items-center justify-center p-4 sm:p-0">
+                    <div id="edit-modal-content" class="relative transform overflow-hidden rounded-2xl bg-white dark:bg-gray-800 shadow-2xl transition-all sm:my-8 w-full sm:max-w-xl md:max-w-2xl opacity-0 scale-95 flex flex-col max-h-[85vh]">
+                        <div class="flex-1 overflow-y-auto custom-scrollbar p-6">
+                            <input type="text" id="edit-note-title" placeholder="Título" class="w-full bg-transparent font-bold text-2xl mb-4 outline-none text-gray-900 dark:text-gray-100">
+                            <textarea id="edit-note-content" placeholder="Nota" class="w-full bg-transparent resize-none outline-none text-gray-700 dark:text-gray-300 text-lg min-h-[200px]"></textarea>
+                        </div>
+                        <div class="bg-gray-50 dark:bg-gray-800/80 px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-gray-100 dark:border-gray-700">
+                            <div class="flex items-center gap-2 overflow-x-auto w-full sm:w-auto" id="edit-color-picker"></div>
+                            <div class="flex items-center gap-3 w-full sm:w-auto justify-end">
+                                <div class="flex items-center">
+                                    <select id="edit-note-cat" class="bg-transparent text-xs font-medium text-gray-500 dark:text-gray-400 outline-none cursor-pointer mr-2">
+                                        <option value="">Sem categoria</option>
+                                    </select>
+                                    <span id="save-status" class="text-xs font-medium text-green-500 opacity-0 transition-opacity flex items-center gap-1">
+                                        ${icons.check} Salvo
+                                    </span>
+                                </div>
+                                <div class="flex items-center gap-1">
+                                    <button id="copy-note-btn" class="p-2 text-gray-400 hover:text-gray-700 rounded-full hover:bg-gray-200 transition-colors">${icons.copy}</button>
+                                    <button id="delete-note-btn" class="p-2 text-gray-400 hover:text-red-600 rounded-full hover:bg-red-50 transition-colors">${icons.trash}</button>
+                                    <button id="close-modal-btn" class="ml-2 px-5 py-2 bg-gray-900 dark:bg-gray-700 text-white rounded-full text-sm font-medium hover:shadow-lg transition-all">Concluir</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                </div>
+            </div>
         </div>
 
-        <div id="cats-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-[60] backdrop-blur-sm p-4">
-            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm p-6">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-lg font-bold">Categorias de Notas</h3>
-                    <button id="close-cats-modal" class="text-gray-500"><i class="fas fa-times"></i></button>
+        <!-- Categories Modal -->
+        <div id="cats-modal" class="fixed inset-0 z-[110] hidden items-center justify-center p-4">
+            <div id="cats-modal-backdrop" class="fixed inset-0 bg-black/60 backdrop-blur-sm"></div>
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm p-6 transform relative z-10">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-lg font-bold text-gray-800 dark:text-white">Etiquetas</h3>
+                    <button id="close-cats-modal" class="text-gray-400 hover:text-gray-600">${icons.close}</button>
                 </div>
-                <form id="add-cat-form" class="flex gap-2 mb-4">
-                    <input type="text" name="catName" placeholder="Nova categoria..." required class="flex-1 rounded-lg border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 p-2 outline-none text-sm">
-                    <button type="submit" class="bg-indigo-600 text-white px-3 py-2 rounded-lg hover:bg-indigo-700"><i class="fas fa-plus"></i></button>
+                <form id="add-cat-form" class="flex gap-2 mb-6">
+                    <input type="text" name="catName" placeholder="Nova etiqueta..." required class="w-full rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 px-4 py-2.5 outline-none text-sm">
+                    <button type="submit" class="bg-indigo-600 text-white px-3.5 py-2 rounded-xl hover:bg-indigo-700">${icons.plus}</button>
                 </form>
                 <div id="cats-list" class="space-y-2 max-h-60 overflow-y-auto custom-scrollbar"></div>
             </div>
         </div>
     `;
 
-  // --- Logic ---
-  const colors = [
-    "white",
-    "red",
-    "orange",
-    "yellow",
-    "green",
-    "teal",
-    "blue",
-    "darkblue",
-    "purple",
-    "pink",
-    "brown",
-    "gray",
-  ];
+  // --- Logic & Data ---
+  
+  const colors = ["white", "red", "orange", "yellow", "green", "teal", "blue", "darkblue", "purple", "pink", "brown", "gray"];
+
   const colorMap = {
-    white: "bg-white dark:bg-gray-800",
-    red: "bg-red-100 dark:bg-red-900/30",
-    orange: "bg-orange-100 dark:bg-orange-900/30",
-    yellow: "bg-yellow-100 dark:bg-yellow-900/30",
-    green: "bg-green-100 dark:bg-green-900/30",
-    teal: "bg-teal-100 dark:bg-teal-900/30",
-    blue: "bg-blue-100 dark:bg-blue-900/30",
-    darkblue: "bg-indigo-100 dark:bg-indigo-900/30",
-    purple: "bg-purple-100 dark:bg-purple-900/30",
-    pink: "bg-pink-100 dark:bg-pink-900/30",
-    brown: "bg-amber-100 dark:bg-amber-900/30",
-    gray: "bg-gray-100 dark:bg-gray-700",
+    white: "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700",
+    red: "bg-red-50 dark:bg-red-900/20 border-red-100 dark:border-red-800/50",
+    orange: "bg-orange-50 dark:bg-orange-900/20 border-orange-100 dark:border-orange-800/50",
+    yellow: "bg-yellow-50 dark:bg-yellow-900/20 border-yellow-100 dark:border-yellow-800/50",
+    green: "bg-green-50 dark:bg-green-900/20 border-green-100 dark:border-green-800/50",
+    teal: "bg-teal-50 dark:bg-teal-900/20 border-teal-100 dark:border-teal-800/50",
+    blue: "bg-blue-50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-800/50",
+    darkblue: "bg-indigo-50 dark:bg-indigo-900/20 border-indigo-100 dark:border-indigo-800/50",
+    purple: "bg-purple-50 dark:bg-purple-900/20 border-purple-100 dark:border-purple-800/50",
+    pink: "bg-pink-50 dark:bg-pink-900/20 border-pink-100 dark:border-pink-800/50",
+    brown: "bg-stone-50 dark:bg-stone-900/20 border-stone-100 dark:border-stone-800/50",
+    gray: "bg-gray-100 dark:bg-gray-700 border-gray-200 dark:border-gray-600",
   };
 
+  const btnColorMap = {
+     white: "#ffffff", red: "#fca5a5", orange: "#fdba74", yellow: "#fde047", green: "#86efac",
+     teal: "#5eead4", blue: "#93c5fd", darkblue: "#a5b4fc", purple: "#d8b4fe", pink: "#f9a8d4",
+     brown: "#d6d3d1", gray: "#e5e7eb"
+  };
+
+  // --- Safe Selectors (Proteção contra null) ---
+  const $ = (selector) => element.querySelector(selector);
+  
   // State
   let notes = [];
   let currentNoteId = null;
   let currentColor = "white";
   let autoSaveTimer = null;
 
-  // Elements
-  const grid = element.querySelector("#notes-grid");
-  const searchInput = element.querySelector("#search-notes");
-  
-  // New Mobile Search Elements
-  const mobileSearchBtn = element.querySelector("#mobile-search-btn");
-  const mobileSearchOverlay = element.querySelector("#mobile-search-overlay");
-  const mobileSearchInput = element.querySelector("#mobile-search-input");
-  const closeMobileSearchBtn = element.querySelector("#close-mobile-search");
-
-  // Create Note Elements
-  const createCollapsed = element.querySelector("#create-note-collapsed");
-  const createExpanded = element.querySelector("#create-note-expanded");
-  const newTitle = element.querySelector("#new-note-title");
-  const newContent = element.querySelector("#new-note-content");
-  const closeCreateBtn = element.querySelector("#close-create-note");
-  const colorPicker = element.querySelector("#color-picker");
-  const createNoteContainer = element.querySelector("#create-note-container"); // Novo elemento
-
-  // Edit Modal Elements
-  const modal = element.querySelector("#edit-modal");
-  const modalContent = element.querySelector("#edit-modal-content");
-  const editTitle = element.querySelector("#edit-note-title");
-  const editContent = element.querySelector("#edit-note-content");
-  const editColorPicker = element.querySelector("#edit-color-picker");
-  const deleteBtn = element.querySelector("#delete-note-btn");
-  const closeModalBtn = element.querySelector("#close-modal-btn");
-  const saveStatus = element.querySelector("#save-status");
-  const copyNoteBtn = element.querySelector("#copy-note-btn"); 
-
-  const newCatSelect = element.querySelector("#new-note-cat");
-  const editCatSelect = element.querySelector("#edit-note-cat");
-  const manageCatsBtn = element.querySelector("#manage-note-cats");
-  const catsModal = element.querySelector("#cats-modal");
-  const closeCatsBtn = element.querySelector("#close-cats-modal");
-  const addCatForm = element.querySelector("#add-cat-form");
-  const catsList = element.querySelector("#cats-list");
-
-  // --- Functions ---
-
-  const renderColorPicker = (container, onClick, selectedColor) => {
+  // --- Helper Functions ---
+  const renderColorPicker = (container, onClick, selected) => {
+    if (!container) return; // Segurança
     container.innerHTML = "";
     colors.forEach((color) => {
       const btn = document.createElement("button");
-      const cssColors = {
-        white: "#ffffff",
-        red: "#fca5a5",
-        orange: "#fdba74",
-        yellow: "#fde047",
-        green: "#86efac",
-        teal: "#5eead4",
-        blue: "#93c5fd",
-        darkblue: "#a5b4fc",
-        purple: "#d8b4fe",
-        pink: "#f9a8d4",
-        brown: "#d6d3d1",
-        gray: "#e5e7eb",
-      };
-      // Usa a cor selecionada (passada como argumento) para o destaque visual
-      btn.className = `w-6 h-6 rounded-full border border-gray-300 dark:border-gray-600 hover:scale-110 transition-transform focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${
-        selectedColor === color ? "ring-2 ring-offset-2 ring-indigo-500 dark:ring-offset-gray-900" : ""
+      const isSelected = selected === color;
+      
+      btn.className = `w-6 h-6 sm:w-8 sm:h-8 rounded-full border border-gray-300 dark:border-gray-600 transition-all duration-200 flex items-center justify-center relative flex-shrink-0 mx-0.5 ${
+        isSelected ? "ring-2 ring-offset-2 ring-indigo-500 dark:ring-offset-gray-800 scale-110" : "hover:scale-110"
       }`;
-      btn.style.backgroundColor = cssColors[color];
-      btn.title = color;
+      btn.style.backgroundColor = btnColorMap[color];
+      
+      if (isSelected) {
+        btn.innerHTML = `<i class="fas fa-check text-[10px] sm:text-xs text-gray-800"></i>`;
+      }
+
       btn.onclick = (e) => {
         e.stopPropagation();
         onClick(color);
@@ -232,47 +234,82 @@ export function Notes() {
     });
   };
 
-  const renderNotes = () => {
-    grid.innerHTML = "";
-    // Verifica qual campo de busca usar (Desktop ou Mobile Overlay)
-    const term = (searchInput.value || mobileSearchInput.value).toLowerCase();
+  const updateCreateContainerColor = (color) => {
+    currentColor = color;
+    const container = $("#create-note-container");
+    if (!container) return;
 
-    const filtered = notes.filter(
+    const classesToRemove = Object.values(colorMap).join(" ").split(" ");
+    container.classList.remove(...classesToRemove);
+    
+    const newClasses = (colorMap[color] || colorMap.white).split(" ");
+    container.classList.add(...newClasses);
+    
+    renderColorPicker($("#color-picker-container"), updateCreateContainerColor, currentColor);
+  };
+
+  const updateEditModalColor = (color) => {
+    currentColor = color;
+    const content = $("#edit-modal-content");
+    if (!content) return;
+
+    const classesToRemove = Object.values(colorMap).join(" ").split(" ");
+    content.classList.remove(...classesToRemove);
+    
+    const newClasses = (colorMap[color] || colorMap.white).split(" ");
+    content.classList.add(...newClasses);
+    
+    renderColorPicker($("#edit-color-picker"), (c) => {
+        updateEditModalColor(c);
+        triggerAutoSave();
+    }, currentColor);
+  };
+
+  const renderNotes = () => {
+    const grid = $("#notes-grid");
+    const emptyState = $("#empty-state");
+    const searchVal = $("#search-notes")?.value || "";
+    const mobileSearchVal = $("#mobile-search-input")?.value || "";
+    const term = (searchVal || mobileSearchVal).toLowerCase();
+
+    if (!grid || !emptyState) return;
+    grid.innerHTML = "";
+
+    // Proteção se notes for null/undefined
+    const safeNotes = Array.isArray(notes) ? notes : [];
+    
+    const filtered = safeNotes.filter(
       (n) =>
         (n.title && n.title.toLowerCase().includes(term)) ||
         (n.content && n.content.toLowerCase().includes(term))
     );
 
     if (filtered.length === 0) {
-      grid.innerHTML =
-        '<div class="col-span-full text-center text-gray-500 py-8">Nenhuma nota encontrada</div>';
+      emptyState.classList.remove("hidden");
+      setTimeout(() => emptyState.classList.remove("opacity-0"), 10);
       return;
     }
 
+    emptyState.classList.add("hidden", "opacity-0");
+
     filtered.forEach((note) => {
       const card = document.createElement("div");
-      // Certifica-se de que note.color existe antes de usar
-      const bgClass = colorMap[note.color] || colorMap.white; 
-      card.className = `${bgClass} p-4 rounded-xl shadow-sm border border-gray-200/50 dark:border-gray-700/50 hover:shadow-lg transition-all cursor-pointer break-inside-avoid mb-4 group relative`;
+      const bgClass = colorMap[note.color] || colorMap.white;
+      
+      card.className = `${bgClass} p-5 rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer break-inside-avoid mb-4 group relative border hover:-translate-y-1`;
 
       card.innerHTML = `
-                ${
-                  note.title
-                    ? `<h3 class="font-bold text-lg mb-2 text-gray-800 dark:text-gray-100">${note.title}</h3>`
-                    : ""
-                }
-                <p class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap text-sm line-clamp-[10]">${
-                  note.content || ""
-                }</p>
-                ${
-                  note.category
-                    ? `<span class="inline-block mt-2 text-[10px] px-2 py-0.5 rounded-full bg-black/10 dark:bg-white/10 font-medium">${note.category}</span>`
-                    : ""
-                }
-                <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 bg-transparent sm:bg-white/50 dark:sm:bg-black/20 rounded-full">
-                    <button class="p-1.5 text-gray-700 dark:text-gray-200 hover:text-indigo-600 dark:hover:text-indigo-400"><i class="fas fa-pen text-sm"></i></button>
-                </div>
-            `;
+        <div class="flex justify-between items-start mb-2 pointer-events-none">
+            ${note.title ? `<h3 class="font-bold text-lg text-gray-900 dark:text-gray-100 line-clamp-2">${note.title}</h3>` : '<span></span>'}
+        </div>
+        <p class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap text-sm leading-relaxed line-clamp-[8] font-medium pointer-events-none">${note.content || '<span class="italic text-gray-400">Nota vazia</span>'}</p>
+        <div class="mt-4 flex items-center justify-between min-h-[24px] pointer-events-none">
+             ${note.category ? `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-black/5 dark:bg-white/10 text-gray-600 dark:text-gray-300 uppercase tracking-wide border border-black/5 dark:border-white/5">${note.category}</span>` : '<span></span>'}
+             <div class="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                 <i class="fas fa-pen text-sm text-gray-400"></i>
+             </div>
+        </div>
+      `;
 
       card.onclick = () => openEditModal(note);
       grid.appendChild(card);
@@ -281,271 +318,277 @@ export function Notes() {
 
   const loadNotes = async () => {
     try {
-      notes = await getNotes();
+      const result = await getNotes();
+      notes = Array.isArray(result) ? result : []; // Garante que é array
       renderNotes();
     } catch (error) {
-      console.error(error);
+      console.error("Erro ao carregar notas:", error);
+      notes = []; // Fallback para array vazio
+      renderNotes();
+      showToast("Erro ao carregar notas", "error");
     }
   };
 
-  // Category Logic
+  // --- Category Logic ---
   const renderCategories = async () => {
-    const cats = await getCategories("note");
-    const populate = (sel) => {
-      const val = sel.value;
-      sel.innerHTML = '<option value="">Sem categoria</option>';
-      cats.forEach((c) => {
-        const opt = document.createElement("option");
-        opt.value = c.name;
-        opt.textContent = c.name;
-        sel.appendChild(opt);
-      });
-      sel.value = val;
-    };
-    populate(newCatSelect);
-    populate(editCatSelect);
-
-    catsList.innerHTML = "";
-    cats.forEach((c) => {
-      const div = document.createElement("div");
-      div.className =
-        "flex justify-between items-center p-2 bg-gray-50 dark:bg-gray-700/50 rounded text-sm";
-      div.innerHTML = `<span>${c.name}</span><button class="text-red-500 hover:text-red-700 p-1"><i class="fas fa-trash"></i></button>`;
-      div.querySelector("button").onclick = () =>
-        showConfirm(`Excluir "${c.name}"?`, async () => {
-          await deleteCategory(c.id);
-          renderCategories();
-        });
-      catsList.appendChild(div);
-    });
-  };
-  manageCatsBtn.onclick = () => {
-    catsModal.classList.remove("hidden");
-    catsModal.classList.add("flex");
-  };
-  closeCatsBtn.onclick = () => {
-    catsModal.classList.add("hidden");
-    catsModal.classList.remove("flex");
-  };
-  addCatForm.onsubmit = async (e) => {
-    e.preventDefault();
-    await addCategory(addCatForm.catName.value, "note");
-    addCatForm.reset();
-    renderCategories();
-  };
-  
-  // --- Mobile Search Logic ---
-  mobileSearchBtn.onclick = () => {
-    mobileSearchOverlay.classList.remove("hidden");
-    mobileSearchOverlay.classList.add("flex");
-    mobileSearchInput.value = searchInput.value; // Sincroniza o valor
-    mobileSearchInput.focus();
-  };
-  closeMobileSearchBtn.onclick = () => {
-    mobileSearchOverlay.classList.add("hidden");
-    mobileSearchOverlay.classList.remove("flex");
-    // Sincroniza o valor de volta para o input desktop
-    searchInput.value = mobileSearchInput.value;
-  };
-  mobileSearchInput.addEventListener("input", renderNotes);
-  // O input desktop já tem o event listener: searchInput.addEventListener("input", renderNotes);
-
-
-  // --- Create Note Logic ---
-  
-  // Adiciona evento de mudança de cor no container de criação
-  const updateCreateContainerColor = (color) => {
-    currentColor = color;
-    const container = createNoteContainer; // Usando a variável de elemento
-    const bgClass = colorMap[color];
+    const newSelect = $("#new-note-cat");
+    const editSelect = $("#edit-note-cat");
+    const list = $("#cats-list");
     
-    // Remove todas as classes de cor (mantendo as outras classes)
-    const newClasses = container.className
-      .split(/\s+/)
-      .filter(cls => !Object.values(colorMap).some(mapCls => mapCls.split(' ').includes(cls)))
-      .join(' ');
-      
-    // Adiciona as novas classes de cor e mantém o resto
-    container.className = `${newClasses} ${bgClass} rounded-lg shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden transition-all duration-200`.trim();
+    try {
+        const cats = await getCategories("note") || [];
+        
+        const populate = (sel) => {
+          if (!sel) return;
+          const val = sel.value;
+          sel.innerHTML = '<option value="">Sem etiqueta</option>';
+          cats.forEach((c) => {
+            const opt = document.createElement("option");
+            opt.value = c.name;
+            opt.textContent = c.name;
+            sel.appendChild(opt);
+          });
+          sel.value = val;
+        };
 
-    renderColorPicker(colorPicker, updateCreateContainerColor, currentColor); // Renderiza novamente para destacar a cor
+        populate(newSelect);
+        populate(editSelect);
+
+        if (list) {
+            list.innerHTML = "";
+            if(cats.length === 0) {
+                list.innerHTML = '<div class="text-center text-gray-400 text-sm py-4 italic">Nenhuma etiqueta criada</div>';
+            }
+            cats.forEach((c) => {
+              const div = document.createElement("div");
+              div.className = "flex justify-between items-center p-3 bg-gray-50 hover:bg-gray-100 dark:bg-gray-700/50 dark:hover:bg-gray-700 rounded-xl text-sm transition-colors group";
+              div.innerHTML = `
+                <span class="font-medium text-gray-700 dark:text-gray-200"><i class="fas fa-tag text-gray-400 mr-2 text-xs"></i>${c.name}</span>
+                <button class="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all p-1.5 rounded-full hover:bg-red-50 dark:hover:bg-red-900/30"><i class="fas fa-trash-alt"></i></button>`;
+              
+              div.querySelector("button").onclick = () =>
+                showConfirm(`Excluir etiqueta "${c.name}"?`, async () => {
+                  await deleteCategory(c.id);
+                  renderCategories();
+                });
+              list.appendChild(div);
+            });
+        }
+    } catch (e) {
+        console.error("Erro categorias:", e);
+    }
   };
+
+  // --- Events Binding (Com Safety Checks) ---
   
-  createCollapsed.onclick = () => {
-    createCollapsed.classList.add("hidden");
-    createExpanded.classList.remove("hidden");
-    newTitle.focus();
-    // Garante que a cor padrão "white" seja aplicada no expandir
-    updateCreateContainerColor("white"); 
+  // Mobile Search
+  const mobileSearchBtn = $("#mobile-search-btn");
+  if (mobileSearchBtn) {
+      mobileSearchBtn.onclick = () => {
+        $("#mobile-search-overlay")?.classList.remove("hidden", "flex"); // Reset
+        $("#mobile-search-overlay")?.classList.add("flex");
+        const deskInput = $("#search-notes");
+        const mobInput = $("#mobile-search-input");
+        if(mobInput && deskInput) mobInput.value = deskInput.value;
+        mobInput?.focus();
+      };
+  }
+
+  $("#close-mobile-search")?.addEventListener("click", () => {
+      $("#mobile-search-overlay")?.classList.remove("flex");
+      $("#mobile-search-overlay")?.classList.add("hidden");
+      const deskInput = $("#search-notes");
+      const mobInput = $("#mobile-search-input");
+      if(deskInput && mobInput) {
+          deskInput.value = mobInput.value;
+          renderNotes();
+      }
+  });
+
+  const syncSearch = () => {
+      const deskInput = $("#search-notes");
+      const mobInput = $("#mobile-search-input");
+      if(deskInput && mobInput) {
+          if (document.activeElement === deskInput) mobInput.value = deskInput.value;
+          else if (document.activeElement === mobInput) deskInput.value = mobInput.value;
+      }
+      renderNotes();
   };
 
-  const closeCreate = async () => {
-    const title = newTitle.value.trim();
-    const content = newContent.value.trim();
+  $("#search-notes")?.addEventListener("input", syncSearch);
+  $("#mobile-search-input")?.addEventListener("input", syncSearch);
+
+  // Create Note
+  const expandCreate = () => {
+      $("#create-note-collapsed")?.classList.add("hidden");
+      $("#create-note-expanded")?.classList.remove("hidden");
+      $("#create-note-expanded")?.classList.add("flex");
+      updateCreateContainerColor("white");
+      $("#new-note-title")?.focus();
+  };
+
+  const collapseCreate = async () => {
+    const title = $("#new-note-title")?.value.trim();
+    const content = $("#new-note-content")?.value.trim();
+    const cat = $("#new-note-cat")?.value;
 
     if (title || content) {
-      await saveNote({
-        title,
-        content,
-        // Usando currentColor que é atualizado pelo color picker
-        color: currentColor, 
-        category: newCatSelect.value,
-      });
-      showToast("Nota criada com sucesso!", "success"); // Feedback ao usuário
-      newTitle.value = "";
-      newContent.value = "";
-      newCatSelect.value = ""; // Reseta a categoria
-      currentColor = "white"; // Reseta o estado local da cor
+      await saveNote({ title, content, color: currentColor, category: cat });
+      showToast("Nota criada", "success");
+      
+      // Reset inputs
+      if($("#new-note-title")) $("#new-note-title").value = "";
+      if($("#new-note-content")) $("#new-note-content").value = "";
+      if($("#new-note-cat")) $("#new-note-cat").value = "";
+      currentColor = "white";
       loadNotes();
     }
-
-    createExpanded.classList.add("hidden");
-    createCollapsed.classList.remove("hidden");
     
-    // Reseta a cor do container para a cor padrão
-    updateCreateContainerColor("white"); 
+    $("#create-note-expanded")?.classList.add("hidden");
+    $("#create-note-expanded")?.classList.remove("flex");
+    $("#create-note-collapsed")?.classList.remove("hidden");
+    updateCreateContainerColor("white");
   };
 
-  closeCreateBtn.onclick = closeCreate;
-  
-  // Inicializa o color picker de criação na cor branca
-  renderColorPicker(colorPicker, updateCreateContainerColor, currentColor);
+  $("#create-note-collapsed")?.addEventListener("click", expandCreate);
+  $("#create-note-trigger")?.addEventListener("click", () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      setTimeout(expandCreate, 300);
+  });
+  $("#close-create-note")?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      collapseCreate();
+  });
 
-
-  // --- Edit/Auto-save Logic ---
+  // Edit Modal
   const openEditModal = (note) => {
     currentNoteId = note.id;
-    editTitle.value = note.title;
-    editContent.value = note.content;
-    // Usa a cor da nota, ou 'white' como fallback
-    currentColor = note.color || "white"; 
-    editCatSelect.value = note.category || "";
+    if($("#edit-note-title")) $("#edit-note-title").value = note.title;
+    if($("#edit-note-content")) $("#edit-note-content").value = note.content;
+    if($("#edit-note-cat")) $("#edit-note-cat").value = note.category || "";
+    currentColor = note.color || "white";
 
-    // Função para atualizar a cor do modal de edição
-    const updateEditModalColor = (color) => {
-        currentColor = color;
-        const newBgClass = colorMap[color];
-        
-        // Remove todas as classes de cor antes de adicionar a nova
-        Object.values(colorMap).forEach((cls) =>
-            cls.split(" ").forEach((cl) => modalContent.classList.remove(cl))
-        );
-        newBgClass.split(" ").forEach((cl) => modalContent.classList.add(cl));
-        renderColorPicker(editColorPicker, updateEditModalColor, currentColor); // Re-renderiza com a cor atualizada
-    }
-    
-    // Aplica a cor inicial da nota
     updateEditModalColor(currentColor);
-    
-    // Passa a função de atualização para o Color Picker do modal
-    renderColorPicker(editColorPicker, (c) => {
-        updateEditModalColor(c);
-        triggerAutoSave();
-    }, currentColor); // Passa a cor inicial para destaque
 
-    modal.classList.remove("hidden");
-    modal.classList.add("flex");
-    setTimeout(() => {
-      modalContent.classList.remove("scale-95", "opacity-0");
-      modalContent.classList.add("scale-100", "opacity-100");
-    }, 10);
-    // Para garantir que o foco seja na área de conteúdo em mobile
-    if (window.innerWidth < 640) {
-      editContent.focus();
+    const modal = $("#edit-modal");
+    const backdrop = $("#edit-modal-backdrop");
+    const content = $("#edit-modal-content");
+
+    if (modal) {
+        modal.classList.remove("hidden");
+        // Animation
+        setTimeout(() => {
+            if(backdrop) backdrop.classList.remove("opacity-0");
+            if(content) {
+                content.classList.remove("opacity-0", "scale-95");
+                content.classList.add("opacity-100", "scale-100");
+            }
+        }, 10);
     }
   };
 
   const closeEditModal = () => {
     if (autoSaveTimer) clearTimeout(autoSaveTimer);
-    saveStatus.style.opacity = "0"; // Garante que o status de salvamento desapareça
+    const saveStatus = $("#save-status");
+    if(saveStatus) saveStatus.classList.add("opacity-0");
+
+    const modal = $("#edit-modal");
+    const backdrop = $("#edit-modal-backdrop");
+    const content = $("#edit-modal-content");
+
+    if(backdrop) backdrop.classList.add("opacity-0");
+    if(content) {
+        content.classList.remove("opacity-100", "scale-100");
+        content.classList.add("opacity-0", "scale-95");
+    }
     
-    modalContent.classList.remove("scale-100", "opacity-100");
-    modalContent.classList.add("scale-95", "opacity-0");
     setTimeout(() => {
-      modal.classList.add("hidden");
-      modal.classList.remove("flex");
+      if(modal) modal.classList.add("hidden");
       currentNoteId = null;
-      loadNotes(); // Recarrega as notas para refletir as mudanças
-    }, 200);
+      loadNotes();
+    }, 300);
   };
 
   const triggerAutoSave = () => {
     if (autoSaveTimer) clearTimeout(autoSaveTimer);
-    saveStatus.style.opacity = "0";
+    const saveStatus = $("#save-status");
+    if(saveStatus) saveStatus.classList.add("opacity-0");
 
     autoSaveTimer = setTimeout(async () => {
       if (!currentNoteId) return;
 
-      const note = {
+      const title = $("#edit-note-title")?.value;
+      const content = $("#edit-note-content")?.value;
+      const cat = $("#edit-note-cat")?.value;
+
+      await saveNote({
         id: currentNoteId,
-        title: editTitle.value,
-        content: editContent.value,
-        color: currentColor, // Usando a cor atualizada
-        category: editCatSelect.value,
-      };
+        title, content, color: currentColor, category: cat,
+      });
 
-      await saveNote(note);
-
-      // Update local state
-      const idx = notes.findIndex((n) => n.id === currentNoteId);
-      if (idx !== -1) notes[idx] = { ...notes[idx], ...note };
-
-      // Feedback de salvamento aprimorado
-      saveStatus.textContent = "Salvo";
-      saveStatus.style.opacity = "1";
-      setTimeout(() => (saveStatus.style.opacity = "0"), 2000);
-    }, 1000); // 1 second debounce
+      if(saveStatus) {
+          saveStatus.classList.remove("opacity-0");
+          saveStatus.classList.add("opacity-100");
+          setTimeout(() => saveStatus.classList.add("opacity-0"), 2000);
+      }
+    }, 800);
   };
 
-  const copyNoteContent = async () => {
-    const title = editTitle.value.trim();
-    const content = editContent.value.trim();
-    
-    if (!title && !content) {
-        showToast("A nota está vazia!", "warning");
-        return;
-    }
+  $("#edit-note-title")?.addEventListener("input", triggerAutoSave);
+  $("#edit-note-content")?.addEventListener("input", triggerAutoSave);
+  $("#edit-note-cat")?.addEventListener("change", triggerAutoSave);
+  $("#close-modal-btn")?.addEventListener("click", closeEditModal);
+  $("#edit-modal-backdrop")?.addEventListener("click", closeEditModal);
 
-    // Combina título e conteúdo, se existirem
-    const textToCopy = (title ? title + "\n\n" : "") + content;
-
-    try {
-        await navigator.clipboard.writeText(textToCopy);
-        showToast("Conteúdo da nota copiado!", "success");
-    } catch (err) {
-        console.error('Falha ao copiar texto: ', err);
-        showToast("Erro ao copiar. Tente novamente.", "error");
-    }
-  };
-
-  editTitle.addEventListener("input", triggerAutoSave);
-  editContent.addEventListener("input", triggerAutoSave);
-  editCatSelect.addEventListener("change", triggerAutoSave);
-
-  closeModalBtn.onclick = closeEditModal;
-  modal.onclick = (e) => {
-    // Somente fecha se clicar diretamente no backdrop
-    if (e.target === modal) closeEditModal();
-  };
-
-  deleteBtn.onclick = async () => {
-    showConfirm("Excluir esta nota permanentemente?", async () => {
-      await deleteNote(currentNoteId);
-      showToast("Nota excluída com sucesso!", "warning");
-      closeEditModal();
-    });
-  };
-
-  // VINCULA A NOVA FUNÇÃO DE COPIAR AO BOTÃO
-  copyNoteBtn.onclick = copyNoteContent;
-
-  // Sincroniza o input desktop com o mobile, se necessário
-  searchInput.addEventListener("input", () => {
-    mobileSearchInput.value = searchInput.value;
-    renderNotes();
+  $("#delete-note-btn")?.addEventListener("click", () => {
+      showConfirm("Excluir esta nota?", async () => {
+          if(currentNoteId) {
+              await deleteNote(currentNoteId);
+              closeEditModal();
+              showToast("Nota excluída", "success");
+          }
+      });
   });
-  // O input mobile já tem o event listener: mobileSearchInput.addEventListener("input", renderNotes);
 
+  $("#copy-note-btn")?.addEventListener("click", async () => {
+      const t = $("#edit-note-title")?.value || "";
+      const c = $("#edit-note-content")?.value || "";
+      try {
+          await navigator.clipboard.writeText(`${t}\n${c}`);
+          showToast("Copiado!", "success");
+      } catch (err) {
+          console.error(err);
+      }
+  });
+
+  // Cats Modal
+  const toggleCats = (show) => {
+      const m = $("#cats-modal");
+      if(m) {
+          if(show) { m.classList.remove("hidden"); m.classList.add("flex"); }
+          else { m.classList.add("hidden"); m.classList.remove("flex"); }
+      }
+  };
+
+  $("#manage-note-cats-btn")?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      toggleCats(true);
+  });
+  $("#close-cats-modal")?.addEventListener("click", () => toggleCats(false));
+  $("#cats-modal-backdrop")?.addEventListener("click", () => toggleCats(false));
+
+  $("#add-cat-form")?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const input = e.target.elements.catName;
+      if(input && input.value.trim()) {
+          await addCategory(input.value.trim(), "note");
+          input.value = "";
+          renderCategories();
+      }
+  });
+
+  // Init
+  renderColorPicker($("#color-picker-container"), updateCreateContainerColor, "white");
   loadNotes();
   renderCategories();
 
