@@ -60,19 +60,21 @@ export function Notes() {
                     <div id="create-note-expanded" class="hidden p-4">
                         <input type="text" id="new-note-title" placeholder="Título" class="w-full bg-transparent font-bold text-lg mb-2 outline-none placeholder-gray-500">
                         <textarea id="new-note-content" placeholder="Criar uma nota..." rows="5" class="w-full bg-transparent resize-none outline-none placeholder-gray-500"></textarea>
+                        
                         <div class="flex flex-wrap items-center gap-3 mb-2 mt-3">
-                            <select id="new-note-cat" class="text-xs bg-gray-100 dark:bg-gray-700 rounded p-1 border-none outline-none flex-grow sm:flex-grow-0">
+                            <select id="new-note-cat" class="text-xs bg-gray-100 dark:bg-gray-700 rounded p-1 border-none outline-none max-w-[150px] flex-shrink-0">
                                 <option value="">Sem categoria</option>
                             </select>
-                            <button id="manage-note-cats" class="text-xs bg-gray-200 dark:bg-gray-600 px-2 py-1 rounded hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"><i class="fas fa-cog mr-1"></i>Gerenciar Categorias</button>
+                            <button id="manage-note-cats" class="text-xs bg-gray-200 dark:bg-gray-600 px-2 py-1 rounded hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors flex-1 sm:flex-none"><i class="fas fa-cog mr-1"></i>Gerenciar Categorias</button>
                         </div>
-                        <div class="flex justify-between items-center mt-3 pt-2 border-t border-gray-100 dark:border-gray-700">
+                        
+                        <div class="flex justify-between items-center mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
                             <div class="flex gap-2" id="color-picker">
                                 </div>
-                            <button id="close-create-note" class="text-sm font-medium px-4 py-1.5 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">Concluir</button>
+                            <button id="close-create-note" class="text-sm font-medium px-4 py-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors">Concluir</button>
                         </div>
                     </div>
-                </div>
+                    </div>
             </div>
 
             <div id="notes-grid" class="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4 space-y-4 p-1">
@@ -95,6 +97,10 @@ export function Notes() {
                     <div class="flex justify-end items-center gap-2">
                         <span id="save-status" class="text-xs text-gray-400 italic opacity-0 transition-opacity mr-2">Salvo</span>
                         
+                        <button id="copy-note-btn" class="p-2 text-gray-500 hover:text-indigo-600 rounded-full hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors" title="Copiar conteúdo">
+                            <i class="fas fa-copy"></i>
+                        </button>
+
                         <button id="delete-note-btn" class="p-2 text-gray-500 hover:text-red-600 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors" title="Excluir"><i class="fas fa-trash"></i></button>
                         
                         <button id="close-modal-btn" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium transition-colors">Concluir</button>
@@ -181,6 +187,7 @@ export function Notes() {
   const deleteBtn = element.querySelector("#delete-note-btn");
   const closeModalBtn = element.querySelector("#close-modal-btn");
   const saveStatus = element.querySelector("#save-status");
+  const copyNoteBtn = element.querySelector("#copy-note-btn"); // NOVO ELEMENTO
 
   const newCatSelect = element.querySelector("#new-note-cat");
   const editCatSelect = element.querySelector("#edit-note-cat");
@@ -345,18 +352,28 @@ export function Notes() {
 
 
   // --- Create Note Logic ---
+  
+  // Adiciona evento de mudança de cor no container de criação
+  const updateCreateContainerColor = (color) => {
+    currentColor = color;
+    const container = element.querySelector("#create-note-container");
+    const bgClass = colorMap[color];
+    // Remove todas as classes de cor e aplica a nova
+    container.className = container.className.replace(
+      /bg-\w+-\d+\/30|bg-\w+-\d+|bg-white|dark:bg-\w+-\d+\/30|dark:bg-\w+-\d+|dark:bg-gray-800/g, 
+      ''
+    );
+    // Adiciona as classes de cor, mantendo as outras (shadow, border, etc.)
+    container.className = `${container.className.replace(/shadow-\w+|border-\w+|rounded-\w+|overflow-\w+|transition-\w+|duration-\w+/g, '').trim()} ${bgClass} rounded-lg shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden transition-all duration-200`;
+
+    renderColorPicker(colorPicker, updateCreateContainerColor); // Renderiza novamente para destacar a cor
+  };
+  
   createCollapsed.onclick = () => {
     createCollapsed.classList.add("hidden");
     createExpanded.classList.remove("hidden");
     newTitle.focus();
-    currentColor = "white";
-    renderColorPicker(colorPicker, (c) => (currentColor = c));
-    // Aplica a cor inicial ao container
-    element.querySelector("#create-note-container").className = 
-      element.querySelector("#create-note-container").className.replace(
-        /bg-\w+-\d+\/30|bg-\w+-\d+|bg-white|dark:bg-\w+-\d+\/30|dark:bg-\w+-\d+|dark:bg-gray-800/g, 
-        colorMap.white.split(' ').join(' ')
-      );
+    updateCreateContainerColor("white");
   };
 
   const closeCreate = async () => {
@@ -380,7 +397,7 @@ export function Notes() {
 
     createExpanded.classList.add("hidden");
     createCollapsed.classList.remove("hidden");
-    // Remove as classes de cor extras
+    // Reseta a cor do container para a cor padrão
     element.querySelector("#create-note-container").className = 
       element.querySelector("#create-note-container").className.replace(
         /bg-\w+-\d+\/30|bg-\w+-\d+|bg-white|dark:bg-\w+-\d+\/30|dark:bg-\w+-\d+|dark:bg-gray-800/g, 
@@ -390,27 +407,6 @@ export function Notes() {
 
   closeCreateBtn.onclick = closeCreate;
   
-  // Adiciona evento de mudança de cor no container de criação
-  const updateCreateContainerColor = (color) => {
-    currentColor = color;
-    const container = element.querySelector("#create-note-container");
-    const bgClass = colorMap[color];
-    // Remove todas as classes de cor e aplica a nova
-    container.className = container.className.replace(
-      /bg-\w+-\d+\/30|bg-\w+-\d+|bg-white|dark:bg-\w+-\d+\/30|dark:bg-\w+-\d+|dark:bg-gray-800/g, 
-      ''
-    );
-    bgClass.split(' ').forEach(cls => container.classList.add(cls));
-    renderColorPicker(colorPicker, updateCreateContainerColor); // Renderiza novamente para destacar a cor
-  };
-  // Modifica a função inicial para usar a nova função de atualização de cor
-  createCollapsed.onclick = () => {
-    createCollapsed.classList.add("hidden");
-    createExpanded.classList.remove("hidden");
-    newTitle.focus();
-    updateCreateContainerColor("white");
-  };
-
 
   // --- Edit/Auto-save Logic ---
   const openEditModal = (note) => {
@@ -493,6 +489,27 @@ export function Notes() {
     }, 1000); // 1 second debounce
   };
 
+  const copyNoteContent = async () => {
+    const title = editTitle.value.trim();
+    const content = editContent.value.trim();
+    
+    if (!title && !content) {
+        showToast("A nota está vazia!", "warning");
+        return;
+    }
+
+    // Combina título e conteúdo, se existirem
+    const textToCopy = (title ? title + "\n\n" : "") + content;
+
+    try {
+        await navigator.clipboard.writeText(textToCopy);
+        showToast("Conteúdo da nota copiado!", "success");
+    } catch (err) {
+        console.error('Falha ao copiar texto: ', err);
+        showToast("Erro ao copiar. Tente novamente.", "error");
+    }
+  };
+
   editTitle.addEventListener("input", triggerAutoSave);
   editContent.addEventListener("input", triggerAutoSave);
   editCatSelect.addEventListener("change", triggerAutoSave);
@@ -510,6 +527,9 @@ export function Notes() {
       closeEditModal();
     });
   };
+
+  // VINCULA A NOVA FUNÇÃO DE COPIAR AO BOTÃO
+  copyNoteBtn.onclick = copyNoteContent;
 
   // Sincroniza o input desktop com o mobile, se necessário
   searchInput.addEventListener("input", () => {
