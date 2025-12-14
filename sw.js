@@ -1,4 +1,4 @@
-const CACHE_NAME = "se-organiza-v7";
+const CACHE_NAME = "se-organiza-v8";
 // Apenas arquivos locais essenciais para o App Shell
 const ASSETS = [
   "./",
