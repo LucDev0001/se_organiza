@@ -205,8 +205,8 @@ export function Notes() {
   
   // State
   let notes = [];
-  let currentNoteId = null;
-  let currentColor = "white"; // Estado para cor da nota a ser criada
+  let currentNoteId = null; 
+  let currentColor = "white"; // Estado para cor da nota a ser criada/editada
   let autoSaveTimer = null;
 
   // --- Helper Functions ---
@@ -239,7 +239,6 @@ export function Notes() {
    * @param {string} color 
    */
   const updateCreateContainerColor = (color) => {
-    // CORREÇÃO: Atualiza o estado global da cor para ser salva
     currentColor = color;
     const container = $("#create-note-container");
     if (!container) return;
@@ -250,14 +249,10 @@ export function Notes() {
     const newClasses = (colorMap[color] || colorMap.white).split(" ");
     container.classList.add(...newClasses);
     
-    // Redesenha o seletor para mostrar a seleção
     renderColorPicker($("#color-picker-container"), updateCreateContainerColor, currentColor);
   };
 
   const updateEditModalColor = (color) => {
-    // Ao editar, a cor é salva no estado global temporário, mas será atualizada
-    // no Firestore via `triggerAutoSave` (que usa esta mesma variável `currentColor`
-    // quando chamada).
     currentColor = color; 
     const content = $("#edit-modal-content");
     if (!content) return;
@@ -444,7 +439,7 @@ export function Notes() {
     const cat = $("#new-note-cat")?.value;
 
     if (title || content) {
-      // CORREÇÃO: Usa a variável global `currentColor`
+      // Usa a variável global `currentColor`
       await saveNote({ title, content, color: currentColor, category: cat });
       showToast("Nota criada", "success");
       
@@ -474,11 +469,11 @@ export function Notes() {
 
   // Edit Modal
   const openEditModal = (note) => {
-    currentNoteId = note.id;
+    currentNoteId = note.id; // Define o ID da nota atual
     if($("#edit-note-title")) $("#edit-note-title").value = note.title;
     if($("#edit-note-content")) $("#edit-note-content").value = note.content;
     if($("#edit-note-cat")) $("#edit-note-cat").value = note.category || "";
-    currentColor = note.color || "white"; // Define o estado global com a cor da nota que está sendo editada
+    currentColor = note.color || "white"; 
 
     updateEditModalColor(currentColor);
 
@@ -553,17 +548,30 @@ export function Notes() {
   $("#close-modal-btn")?.addEventListener("click", closeEditModal);
   $("#edit-modal-backdrop")?.addEventListener("click", closeEditModal);
 
-  $("#delete-note-btn")?.addEventListener("click", () => {
+  // --- LÓGICA DE DELEÇÃO CORRIGIDA COM STOPPROPAGATION ---
+  $("#delete-note-btn")?.addEventListener("click", (e) => {
+      e.stopPropagation(); // <-- CORREÇÃO: Impede o clique de fechar o modal principal
+      console.log("Delete button clicked. Note ID to delete:", currentNoteId); 
       showConfirm("Excluir esta nota?", async () => {
           if(currentNoteId) {
-              await deleteNote(currentNoteId);
-              closeEditModal();
-              showToast("Nota excluída", "success");
+              try {
+                  console.log(`Executing deleteNote(${currentNoteId})`); 
+                  await deleteNote(currentNoteId);
+                  closeEditModal();
+                  showToast("Nota excluída", "success");
+              } catch (error) {
+                  console.error("ERRO AO EXCLUIR NOTA (Service failure):", error); 
+                  showToast("Erro ao excluir nota. Verifique o console para detalhes.", "error");
+              }
+          } else {
+              console.warn("Delete aborted: currentNoteId is missing.");
+              showToast("Erro: ID da nota não foi carregado para exclusão.", "error");
           }
       });
   });
 
-  $("#copy-note-btn")?.addEventListener("click", async () => {
+  $("#copy-note-btn")?.addEventListener("click", async (e) => {
+      e.stopPropagation(); // Adicionado por segurança
       const t = $("#edit-note-title")?.value || "";
       const c = $("#edit-note-content")?.value || "";
       try {
@@ -626,4 +634,3 @@ export function Notes() {
 
   return element;
 }
-
