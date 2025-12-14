@@ -62,10 +62,10 @@ export function Notes() {
                         <textarea id="new-note-content" placeholder="Criar uma nota..." rows="5" class="w-full bg-transparent resize-none outline-none placeholder-gray-500"></textarea>
                         
                         <div class="flex flex-wrap items-center gap-3 mb-2 mt-3">
-                            <select id="new-note-cat" class="text-xs bg-gray-100 dark:bg-gray-700 rounded p-1 border-none outline-none max-w-[150px] flex-shrink-0">
+                            <select id="new-note-cat" class="text-xs bg-gray-100 dark:bg-gray-700 rounded p-1 border-none outline-none w-full sm:w-auto flex-shrink-0">
                                 <option value="">Sem categoria</option>
                             </select>
-                            <button id="manage-note-cats" class="text-xs bg-gray-200 dark:bg-gray-600 px-2 py-1 rounded hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors flex-1 sm:flex-none"><i class="fas fa-cog mr-1"></i>Gerenciar Categorias</button>
+                            <button id="manage-note-cats" class="text-xs bg-gray-200 dark:bg-gray-600 px-2 py-1 rounded hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors w-full sm:w-auto"><i class="fas fa-cog mr-1"></i>Gerenciar Categorias</button>
                         </div>
                         
                         <div class="flex justify-between items-center mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
@@ -94,7 +94,7 @@ export function Notes() {
                 <div class="p-3 bg-gray-50/50 dark:bg-gray-700/30 flex flex-col sm:flex-row justify-between sm:items-center border-t border-gray-100 dark:border-gray-700 backdrop-blur-sm">
                     <div class="flex gap-2 pb-2 sm:pb-0" id="edit-color-picker"></div>
                     
-                    <div class="flex justify-end items-center gap-2">
+                    <div class="flex justify-end items-center gap-2 flex-shrink-0">
                         <span id="save-status" class="text-xs text-gray-400 italic opacity-0 transition-opacity mr-2">Salvo</span>
                         
                         <button id="copy-note-btn" class="p-2 text-gray-500 hover:text-indigo-600 rounded-full hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors" title="Copiar conteúdo">
