@@ -206,7 +206,7 @@ export function Notes() {
   // State
   let notes = [];
   let currentNoteId = null;
-  let currentColor = "white";
+  let currentColor = "white"; // Estado para cor da nota a ser criada
   let autoSaveTimer = null;
 
   // --- Helper Functions ---
@@ -234,7 +234,12 @@ export function Notes() {
     });
   };
 
+  /**
+   * Atualiza a cor do container de criação e o estado global `currentColor`.
+   * @param {string} color 
+   */
   const updateCreateContainerColor = (color) => {
+    // CORREÇÃO: Atualiza o estado global da cor para ser salva
     currentColor = color;
     const container = $("#create-note-container");
     if (!container) return;
@@ -245,11 +250,15 @@ export function Notes() {
     const newClasses = (colorMap[color] || colorMap.white).split(" ");
     container.classList.add(...newClasses);
     
+    // Redesenha o seletor para mostrar a seleção
     renderColorPicker($("#color-picker-container"), updateCreateContainerColor, currentColor);
   };
 
   const updateEditModalColor = (color) => {
-    currentColor = color;
+    // Ao editar, a cor é salva no estado global temporário, mas será atualizada
+    // no Firestore via `triggerAutoSave` (que usa esta mesma variável `currentColor`
+    // quando chamada).
+    currentColor = color; 
     const content = $("#edit-modal-content");
     if (!content) return;
 
@@ -294,7 +303,8 @@ export function Notes() {
 
     filtered.forEach((note) => {
       const card = document.createElement("div");
-      const bgClass = colorMap[note.color] || colorMap.white;
+      // Usa a cor da nota salva. Se não houver, usa branco.
+      const bgClass = colorMap[note.color] || colorMap.white; 
       
       card.className = `${bgClass} p-5 rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer break-inside-avoid mb-4 group relative border hover:-translate-y-1`;
 
@@ -385,7 +395,7 @@ export function Notes() {
   const mobileSearchBtn = $("#mobile-search-btn");
   if (mobileSearchBtn) {
       mobileSearchBtn.onclick = () => {
-        $("#mobile-search-overlay")?.classList.remove("hidden", "flex"); // Reset
+        $("#mobile-search-overlay")?.classList.remove("hidden"); 
         $("#mobile-search-overlay")?.classList.add("flex");
         const deskInput = $("#search-notes");
         const mobInput = $("#mobile-search-input");
@@ -423,7 +433,8 @@ export function Notes() {
       $("#create-note-collapsed")?.classList.add("hidden");
       $("#create-note-expanded")?.classList.remove("hidden");
       $("#create-note-expanded")?.classList.add("flex");
-      updateCreateContainerColor("white");
+      // Garante que a cor inicial é branca ao expandir
+      updateCreateContainerColor("white"); 
       $("#new-note-title")?.focus();
   };
 
@@ -433,6 +444,7 @@ export function Notes() {
     const cat = $("#new-note-cat")?.value;
 
     if (title || content) {
+      // CORREÇÃO: Usa a variável global `currentColor`
       await saveNote({ title, content, color: currentColor, category: cat });
       showToast("Nota criada", "success");
       
@@ -440,14 +452,14 @@ export function Notes() {
       if($("#new-note-title")) $("#new-note-title").value = "";
       if($("#new-note-content")) $("#new-note-content").value = "";
       if($("#new-note-cat")) $("#new-note-cat").value = "";
-      currentColor = "white";
+      currentColor = "white"; // Reset para o estado inicial
       loadNotes();
     }
     
     $("#create-note-expanded")?.classList.add("hidden");
     $("#create-note-expanded")?.classList.remove("flex");
     $("#create-note-collapsed")?.classList.remove("hidden");
-    updateCreateContainerColor("white");
+    updateCreateContainerColor("white"); // Volta a cor do container para branco (estado colapsado)
   };
 
   $("#create-note-collapsed")?.addEventListener("click", expandCreate);
@@ -466,7 +478,7 @@ export function Notes() {
     if($("#edit-note-title")) $("#edit-note-title").value = note.title;
     if($("#edit-note-content")) $("#edit-note-content").value = note.content;
     if($("#edit-note-cat")) $("#edit-note-cat").value = note.category || "";
-    currentColor = note.color || "white";
+    currentColor = note.color || "white"; // Define o estado global com a cor da nota que está sendo editada
 
     updateEditModalColor(currentColor);
 
@@ -521,6 +533,7 @@ export function Notes() {
       const content = $("#edit-note-content")?.value;
       const cat = $("#edit-note-cat")?.value;
 
+      // USA a variável global `currentColor` para salvar a cor na edição
       await saveNote({
         id: currentNoteId,
         title, content, color: currentColor, category: cat,
@@ -554,10 +567,29 @@ export function Notes() {
       const t = $("#edit-note-title")?.value || "";
       const c = $("#edit-note-content")?.value || "";
       try {
-          await navigator.clipboard.writeText(`${t}\n${c}`);
+          // Fallback seguro para cópia
+          const textToCopy = `${t}\n\n${c}`;
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+              await navigator.clipboard.writeText(textToCopy);
+          } else {
+              // Fallback para ambientes restritos (como iframe)
+              const textarea = document.createElement('textarea');
+              textarea.value = textToCopy;
+              textarea.style.position = 'fixed'; 
+              document.body.appendChild(textarea);
+              textarea.focus();
+              textarea.select();
+              try {
+                  document.execCommand('copy');
+              } catch (err) {
+                  console.error('Falha ao usar execCommand para copiar:', err);
+              }
+              document.body.removeChild(textarea);
+          }
           showToast("Copiado!", "success");
       } catch (err) {
-          console.error(err);
+          console.error("Erro ao copiar nota:", err);
+          showToast("Falha ao copiar", "error");
       }
   });
 
@@ -594,3 +626,4 @@ export function Notes() {
 
   return element;
 }
+
