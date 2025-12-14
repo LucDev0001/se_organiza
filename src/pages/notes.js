@@ -68,8 +68,8 @@ export function Notes() {
                             <button id="manage-note-cats" class="text-xs bg-gray-200 dark:bg-gray-600 px-2 py-1 rounded hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors w-full sm:w-auto"><i class="fas fa-cog mr-1"></i>Gerenciar Categorias</button>
                         </div>
                         
-                        <div class="flex justify-between items-center mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
-                            <div class="flex gap-2" id="color-picker">
+                        <div class="flex flex-wrap justify-between items-center mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+                            <div class="flex gap-2 py-2" id="color-picker"> 
                                 </div>
                             <button id="close-create-note" class="text-sm font-medium px-4 py-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors">Concluir</button>
                         </div>
@@ -82,7 +82,7 @@ export function Notes() {
         </main>
 
         <div id="edit-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 backdrop-blur-sm p-4">
-            <div id="edit-modal-content" class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-lg p-0 transform transition-all scale-95 opacity-0 overflow-hidden flex flex-col max-h-[90vh]">
+            <div id="edit-modal-content" class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-lg sm:max-w-xl md:max-w-2xl p-0 transform transition-all scale-95 opacity-0 overflow-hidden flex flex-col max-h-[90vh]">
                 <div class="p-4 overflow-y-auto flex-1 custom-scrollbar">
                     <input type="text" id="edit-note-title" placeholder="Título" class="w-full bg-transparent font-bold text-xl mb-3 outline-none placeholder-gray-500">
                     <textarea id="edit-note-content" placeholder="Nota" class="w-full bg-transparent resize-none outline-none placeholder-gray-500 min-h-[150px]"></textarea>
@@ -177,6 +177,7 @@ export function Notes() {
   const newContent = element.querySelector("#new-note-content");
   const closeCreateBtn = element.querySelector("#close-create-note");
   const colorPicker = element.querySelector("#color-picker");
+  const createNoteContainer = element.querySelector("#create-note-container"); // Novo elemento
 
   // Edit Modal Elements
   const modal = element.querySelector("#edit-modal");
@@ -187,7 +188,7 @@ export function Notes() {
   const deleteBtn = element.querySelector("#delete-note-btn");
   const closeModalBtn = element.querySelector("#close-modal-btn");
   const saveStatus = element.querySelector("#save-status");
-  const copyNoteBtn = element.querySelector("#copy-note-btn"); // NOVO ELEMENTO
+  const copyNoteBtn = element.querySelector("#copy-note-btn"); 
 
   const newCatSelect = element.querySelector("#new-note-cat");
   const editCatSelect = element.querySelector("#edit-note-cat");
@@ -199,7 +200,7 @@ export function Notes() {
 
   // --- Functions ---
 
-  const renderColorPicker = (container, onClick) => {
+  const renderColorPicker = (container, onClick, selectedColor) => {
     container.innerHTML = "";
     colors.forEach((color) => {
       const btn = document.createElement("button");
@@ -217,17 +218,15 @@ export function Notes() {
         brown: "#d6d3d1",
         gray: "#e5e7eb",
       };
-      // Adicionado ring-2 e classes de foco/seleção para melhor feedback visual
+      // Usa a cor selecionada (passada como argumento) para o destaque visual
       btn.className = `w-6 h-6 rounded-full border border-gray-300 dark:border-gray-600 hover:scale-110 transition-transform focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${
-        currentColor === color ? "ring-2 ring-offset-2 ring-indigo-500 dark:ring-offset-gray-900" : ""
+        selectedColor === color ? "ring-2 ring-offset-2 ring-indigo-500 dark:ring-offset-gray-900" : ""
       }`;
       btn.style.backgroundColor = cssColors[color];
       btn.title = color;
       btn.onclick = (e) => {
         e.stopPropagation();
         onClick(color);
-        // Atualiza o estado visual do color picker após a seleção
-        renderColorPicker(container, onClick);
       };
       container.appendChild(btn);
     });
@@ -252,7 +251,8 @@ export function Notes() {
 
     filtered.forEach((note) => {
       const card = document.createElement("div");
-      const bgClass = colorMap[note.color] || colorMap.white;
+      // Certifica-se de que note.color existe antes de usar
+      const bgClass = colorMap[note.color] || colorMap.white; 
       card.className = `${bgClass} p-4 rounded-xl shadow-sm border border-gray-200/50 dark:border-gray-700/50 hover:shadow-lg transition-all cursor-pointer break-inside-avoid mb-4 group relative`;
 
       card.innerHTML = `
@@ -356,24 +356,27 @@ export function Notes() {
   // Adiciona evento de mudança de cor no container de criação
   const updateCreateContainerColor = (color) => {
     currentColor = color;
-    const container = element.querySelector("#create-note-container");
+    const container = createNoteContainer; // Usando a variável de elemento
     const bgClass = colorMap[color];
-    // Remove todas as classes de cor e aplica a nova
-    container.className = container.className.replace(
-      /bg-\w+-\d+\/30|bg-\w+-\d+|bg-white|dark:bg-\w+-\d+\/30|dark:bg-\w+-\d+|dark:bg-gray-800/g, 
-      ''
-    );
-    // Adiciona as classes de cor, mantendo as outras (shadow, border, etc.)
-    container.className = `${container.className.replace(/shadow-\w+|border-\w+|rounded-\w+|overflow-\w+|transition-\w+|duration-\w+/g, '').trim()} ${bgClass} rounded-lg shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden transition-all duration-200`;
+    
+    // Remove todas as classes de cor (mantendo as outras classes)
+    const newClasses = container.className
+      .split(/\s+/)
+      .filter(cls => !Object.values(colorMap).some(mapCls => mapCls.split(' ').includes(cls)))
+      .join(' ');
+      
+    // Adiciona as novas classes de cor e mantém o resto
+    container.className = `${newClasses} ${bgClass} rounded-lg shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden transition-all duration-200`.trim();
 
-    renderColorPicker(colorPicker, updateCreateContainerColor); // Renderiza novamente para destacar a cor
+    renderColorPicker(colorPicker, updateCreateContainerColor, currentColor); // Renderiza novamente para destacar a cor
   };
   
   createCollapsed.onclick = () => {
     createCollapsed.classList.add("hidden");
     createExpanded.classList.remove("hidden");
     newTitle.focus();
-    updateCreateContainerColor("white");
+    // Garante que a cor padrão "white" seja aplicada no expandir
+    updateCreateContainerColor("white"); 
   };
 
   const closeCreate = async () => {
@@ -384,56 +387,61 @@ export function Notes() {
       await saveNote({
         title,
         content,
-        color: currentColor,
+        // Usando currentColor que é atualizado pelo color picker
+        color: currentColor, 
         category: newCatSelect.value,
       });
       showToast("Nota criada com sucesso!", "success"); // Feedback ao usuário
       newTitle.value = "";
       newContent.value = "";
       newCatSelect.value = ""; // Reseta a categoria
-      currentColor = "white"; // Reseta a cor
+      currentColor = "white"; // Reseta o estado local da cor
       loadNotes();
     }
 
     createExpanded.classList.add("hidden");
     createCollapsed.classList.remove("hidden");
+    
     // Reseta a cor do container para a cor padrão
-    element.querySelector("#create-note-container").className = 
-      element.querySelector("#create-note-container").className.replace(
-        /bg-\w+-\d+\/30|bg-\w+-\d+|bg-white|dark:bg-\w+-\d+\/30|dark:bg-\w+-\d+|dark:bg-gray-800/g, 
-        colorMap.white.split(' ').join(' ')
-      );
+    updateCreateContainerColor("white"); 
   };
 
   closeCreateBtn.onclick = closeCreate;
   
+  // Inicializa o color picker de criação na cor branca
+  renderColorPicker(colorPicker, updateCreateContainerColor, currentColor);
+
 
   // --- Edit/Auto-save Logic ---
   const openEditModal = (note) => {
     currentNoteId = note.id;
     editTitle.value = note.title;
     editContent.value = note.content;
-    currentColor = note.color;
+    // Usa a cor da nota, ou 'white' como fallback
+    currentColor = note.color || "white"; 
     editCatSelect.value = note.category || "";
 
-    // Update modal visual
-    const bgClass = colorMap[note.color] || colorMap.white;
-    // Lógica aprimorada para remover todas as cores antes de adicionar a nova
-    Object.values(colorMap).forEach((c) =>
-      c.split(" ").forEach((cls) => modalContent.classList.remove(cls))
-    );
-    bgClass.split(" ").forEach((cls) => modalContent.classList.add(cls));
-
+    // Função para atualizar a cor do modal de edição
+    const updateEditModalColor = (color) => {
+        currentColor = color;
+        const newBgClass = colorMap[color];
+        
+        // Remove todas as classes de cor antes de adicionar a nova
+        Object.values(colorMap).forEach((cls) =>
+            cls.split(" ").forEach((cl) => modalContent.classList.remove(cl))
+        );
+        newBgClass.split(" ").forEach((cl) => modalContent.classList.add(cl));
+        renderColorPicker(editColorPicker, updateEditModalColor, currentColor); // Re-renderiza com a cor atualizada
+    }
+    
+    // Aplica a cor inicial da nota
+    updateEditModalColor(currentColor);
+    
+    // Passa a função de atualização para o Color Picker do modal
     renderColorPicker(editColorPicker, (c) => {
-      currentColor = c;
-      const newBgClass = colorMap[c];
-      // Lógica aprimorada para remover todas as cores antes de adicionar a nova
-      Object.values(colorMap).forEach((cls) =>
-        cls.split(" ").forEach((cl) => modalContent.classList.remove(cl))
-      );
-      newBgClass.split(" ").forEach((cl) => modalContent.classList.add(cl));
-      triggerAutoSave();
-    });
+        updateEditModalColor(c);
+        triggerAutoSave();
+    }, currentColor); // Passa a cor inicial para destaque
 
     modal.classList.remove("hidden");
     modal.classList.add("flex");
@@ -472,7 +480,7 @@ export function Notes() {
         id: currentNoteId,
         title: editTitle.value,
         content: editContent.value,
-        color: currentColor,
+        color: currentColor, // Usando a cor atualizada
         category: editCatSelect.value,
       };
 
