@@ -12,61 +12,73 @@ export function Notes() {
     "flex flex-col h-full bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100";
 
   element.innerHTML = `
-        <header class="bg-white dark:bg-gray-800 shadow-sm px-6 py-4 flex justify-between items-center sticky top-0 z-10">
-            <div class="flex items-center gap-4">
-                <button onclick="window.location.hash='/dashboard'" class="text-gray-500 hover:text-indigo-600 transition-colors">
+        <header class="bg-white dark:bg-gray-800 shadow-sm px-4 sm:px-6 py-4 flex justify-between items-center sticky top-0 z-10">
+            <div class="flex items-center gap-2 sm:gap-4">
+                <button onclick="window.location.hash='/dashboard'" class="text-gray-500 hover:text-indigo-600 transition-colors p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
                     <i class="fas fa-arrow-left text-xl"></i>
                 </button>
                 <h1 class="text-xl font-bold text-gray-800 dark:text-white">Notas</h1>
             </div>
-            <div class="flex items-center gap-4">
+            <div class="flex items-center gap-2 sm:gap-4">
+                <button id="mobile-search-btn" class="sm:hidden text-gray-500 hover:text-indigo-600 transition-colors p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
+                    <i class="fas fa-search text-xl"></i>
+                </button>
+                
                 <div class="relative hidden sm:block">
-                <input type="text" id="search-notes" placeholder="Pesquisar..." class="pl-10 pr-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 border-none focus:ring-2 focus:ring-indigo-500 w-full sm:w-64 text-sm outline-none transition-all">
-                <i class="fas fa-search absolute left-3 top-2.5 text-gray-400"></i>
+                    <input type="text" id="search-notes" placeholder="Pesquisar..." class="pl-10 pr-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 border-none focus:ring-2 focus:ring-indigo-500 w-full sm:w-64 text-sm outline-none transition-all">
+                    <i class="fas fa-search absolute left-3 top-2.5 text-gray-400"></i>
                 </div>
-                <button onclick="window.toggleTheme()" class="text-gray-500 hover:text-yellow-500 transition-colors">
+
+                <button onclick="window.toggleTheme()" class="text-gray-500 hover:text-yellow-500 transition-colors p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
                     <i class="fas fa-adjust text-xl"></i>
                 </button>
-                <button onclick="window.location.hash='/notifications'" class="text-gray-500 hover:text-indigo-600 transition-colors relative">
+                <button onclick="window.location.hash='/notifications'" class="text-gray-500 hover:text-indigo-600 transition-colors relative p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
                     <i class="fas fa-bell text-xl"></i>
                     <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center">3</span>
                 </button>
             </div>
         </header>
 
-        <main class="flex-1 p-6 overflow-y-auto custom-scrollbar">
-            <!-- Create Note Area -->
+        <div id="mobile-search-overlay" class="fixed inset-0 bg-white dark:bg-gray-900 z-[55] hidden p-4">
+            <div class="flex items-center gap-2">
+                <button id="close-mobile-search" class="text-gray-500 hover:text-indigo-600 transition-colors">
+                    <i class="fas fa-arrow-left text-xl"></i>
+                </button>
+                <div class="relative flex-1">
+                    <input type="text" id="mobile-search-input" placeholder="Pesquisar notas..." class="w-full pl-10 pr-4 py-3 rounded-lg bg-gray-100 dark:bg-gray-800 border-none focus:ring-2 focus:ring-indigo-500 text-base outline-none">
+                    <i class="fas fa-search absolute left-3 top-3.5 text-gray-400"></i>
+                </div>
+            </div>
+        </div>
+
+        <main class="flex-1 p-4 sm:p-6 overflow-y-auto custom-scrollbar">
             <div class="max-w-2xl mx-auto mb-8">
-                <div id="create-note-container" class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden transition-all duration-200">
+                <div id="create-note-container" class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden transition-all duration-200">
                     <div id="create-note-collapsed" class="p-3 text-gray-500 font-medium cursor-text">
                         Criar uma nota...
                     </div>
                     <div id="create-note-expanded" class="hidden p-4">
                         <input type="text" id="new-note-title" placeholder="Título" class="w-full bg-transparent font-bold text-lg mb-2 outline-none placeholder-gray-500">
-                        <textarea id="new-note-content" placeholder="Criar uma nota..." rows="3" class="w-full bg-transparent resize-none outline-none placeholder-gray-500"></textarea>
-                        <div class="flex gap-2 mb-2">
-                            <select id="new-note-cat" class="text-xs bg-gray-100 dark:bg-gray-700 rounded p-1 border-none outline-none">
+                        <textarea id="new-note-content" placeholder="Criar uma nota..." rows="5" class="w-full bg-transparent resize-none outline-none placeholder-gray-500"></textarea>
+                        <div class="flex flex-wrap items-center gap-3 mb-2 mt-3">
+                            <select id="new-note-cat" class="text-xs bg-gray-100 dark:bg-gray-700 rounded p-1 border-none outline-none flex-grow sm:flex-grow-0">
                                 <option value="">Sem categoria</option>
                             </select>
-                            <button id="manage-note-cats" class="text-xs bg-gray-200 dark:bg-gray-600 px-2 rounded"><i class="fas fa-cog"></i></button>
+                            <button id="manage-note-cats" class="text-xs bg-gray-200 dark:bg-gray-600 px-2 py-1 rounded hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"><i class="fas fa-cog mr-1"></i>Gerenciar Categorias</button>
                         </div>
                         <div class="flex justify-between items-center mt-3 pt-2 border-t border-gray-100 dark:border-gray-700">
                             <div class="flex gap-2" id="color-picker">
-                                <!-- Colors injected via JS -->
-                            </div>
-                            <button id="close-create-note" class="text-sm font-medium px-4 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">Fechar</button>
+                                </div>
+                            <button id="close-create-note" class="text-sm font-medium px-4 py-1.5 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">Concluir</button>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Notes Grid (Masonry Layout using Columns) -->
             <div id="notes-grid" class="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4 space-y-4 p-1">
-                <!-- Notes injected via JS -->
-            </div>
+                </div>
         </main>
 
-        <!-- Edit Modal -->
         <div id="edit-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 backdrop-blur-sm p-4">
             <div id="edit-modal-content" class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-lg p-0 transform transition-all scale-95 opacity-0 overflow-hidden flex flex-col max-h-[90vh]">
                 <div class="p-4 overflow-y-auto flex-1 custom-scrollbar">
@@ -76,18 +88,21 @@ export function Notes() {
                         <option value="">Sem categoria</option>
                     </select>
                 </div>
-                <div class="p-3 bg-gray-50/50 dark:bg-gray-700/30 flex justify-between items-center border-t border-gray-100 dark:border-gray-700 backdrop-blur-sm">
-                    <div class="flex gap-2" id="edit-color-picker"></div>
-                    <div class="flex gap-2 items-center">
+                
+                <div class="p-3 bg-gray-50/50 dark:bg-gray-700/30 flex flex-col sm:flex-row justify-between sm:items-center border-t border-gray-100 dark:border-gray-700 backdrop-blur-sm">
+                    <div class="flex gap-2 pb-2 sm:pb-0" id="edit-color-picker"></div>
+                    
+                    <div class="flex justify-end items-center gap-2">
                         <span id="save-status" class="text-xs text-gray-400 italic opacity-0 transition-opacity mr-2">Salvo</span>
+                        
                         <button id="delete-note-btn" class="p-2 text-gray-500 hover:text-red-600 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors" title="Excluir"><i class="fas fa-trash"></i></button>
+                        
                         <button id="close-modal-btn" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium transition-colors">Concluir</button>
                     </div>
                 </div>
-            </div>
+                </div>
         </div>
 
-        <!-- Categories Modal -->
         <div id="cats-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-[60] backdrop-blur-sm p-4">
             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm p-6">
                 <div class="flex justify-between items-center mb-4">
@@ -142,6 +157,12 @@ export function Notes() {
   // Elements
   const grid = element.querySelector("#notes-grid");
   const searchInput = element.querySelector("#search-notes");
+  
+  // New Mobile Search Elements
+  const mobileSearchBtn = element.querySelector("#mobile-search-btn");
+  const mobileSearchOverlay = element.querySelector("#mobile-search-overlay");
+  const mobileSearchInput = element.querySelector("#mobile-search-input");
+  const closeMobileSearchBtn = element.querySelector("#close-mobile-search");
 
   // Create Note Elements
   const createCollapsed = element.querySelector("#create-note-collapsed");
@@ -189,14 +210,17 @@ export function Notes() {
         brown: "#d6d3d1",
         gray: "#e5e7eb",
       };
-      btn.className = `w-5 h-5 rounded-full border border-gray-300 dark:border-gray-600 hover:scale-110 transition-transform ${
-        currentColor === color ? "ring-2 ring-indigo-500" : ""
+      // Adicionado ring-2 e classes de foco/seleção para melhor feedback visual
+      btn.className = `w-6 h-6 rounded-full border border-gray-300 dark:border-gray-600 hover:scale-110 transition-transform focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${
+        currentColor === color ? "ring-2 ring-offset-2 ring-indigo-500 dark:ring-offset-gray-900" : ""
       }`;
       btn.style.backgroundColor = cssColors[color];
       btn.title = color;
       btn.onclick = (e) => {
         e.stopPropagation();
         onClick(color);
+        // Atualiza o estado visual do color picker após a seleção
+        renderColorPicker(container, onClick);
       };
       container.appendChild(btn);
     });
@@ -204,7 +228,9 @@ export function Notes() {
 
   const renderNotes = () => {
     grid.innerHTML = "";
-    const term = searchInput.value.toLowerCase();
+    // Verifica qual campo de busca usar (Desktop ou Mobile Overlay)
+    const term = (searchInput.value || mobileSearchInput.value).toLowerCase();
+
     const filtered = notes.filter(
       (n) =>
         (n.title && n.title.toLowerCase().includes(term)) ||
@@ -220,7 +246,7 @@ export function Notes() {
     filtered.forEach((note) => {
       const card = document.createElement("div");
       const bgClass = colorMap[note.color] || colorMap.white;
-      card.className = `${bgClass} p-4 rounded-xl shadow-sm border border-gray-200/50 dark:border-gray-700/50 hover:shadow-md transition-all cursor-pointer break-inside-avoid mb-4 group relative`;
+      card.className = `${bgClass} p-4 rounded-xl shadow-sm border border-gray-200/50 dark:border-gray-700/50 hover:shadow-lg transition-all cursor-pointer break-inside-avoid mb-4 group relative`;
 
       card.innerHTML = `
                 ${
@@ -233,11 +259,11 @@ export function Notes() {
                 }</p>
                 ${
                   note.category
-                    ? `<span class="inline-block mt-2 text-[10px] px-2 py-0.5 rounded-full bg-black/10 dark:bg-white/10">${note.category}</span>`
+                    ? `<span class="inline-block mt-2 text-[10px] px-2 py-0.5 rounded-full bg-black/10 dark:bg-white/10 font-medium">${note.category}</span>`
                     : ""
                 }
-                <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button class="p-1.5 bg-white/50 dark:bg-black/20 rounded-full hover:bg-white dark:hover:bg-black/40"><i class="fas fa-pen text-xs"></i></button>
+                <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 bg-transparent sm:bg-white/50 dark:sm:bg-black/20 rounded-full">
+                    <button class="p-1.5 text-gray-700 dark:text-gray-200 hover:text-indigo-600 dark:hover:text-indigo-400"><i class="fas fa-pen text-sm"></i></button>
                 </div>
             `;
 
@@ -277,7 +303,7 @@ export function Notes() {
       const div = document.createElement("div");
       div.className =
         "flex justify-between items-center p-2 bg-gray-50 dark:bg-gray-700/50 rounded text-sm";
-      div.innerHTML = `<span>${c.name}</span><button class="text-red-500"><i class="fas fa-trash"></i></button>`;
+      div.innerHTML = `<span>${c.name}</span><button class="text-red-500 hover:text-red-700 p-1"><i class="fas fa-trash"></i></button>`;
       div.querySelector("button").onclick = () =>
         showConfirm(`Excluir "${c.name}"?`, async () => {
           await deleteCategory(c.id);
@@ -300,6 +326,23 @@ export function Notes() {
     addCatForm.reset();
     renderCategories();
   };
+  
+  // --- Mobile Search Logic ---
+  mobileSearchBtn.onclick = () => {
+    mobileSearchOverlay.classList.remove("hidden");
+    mobileSearchOverlay.classList.add("flex");
+    mobileSearchInput.value = searchInput.value; // Sincroniza o valor
+    mobileSearchInput.focus();
+  };
+  closeMobileSearchBtn.onclick = () => {
+    mobileSearchOverlay.classList.add("hidden");
+    mobileSearchOverlay.classList.remove("flex");
+    // Sincroniza o valor de volta para o input desktop
+    searchInput.value = mobileSearchInput.value;
+  };
+  mobileSearchInput.addEventListener("input", renderNotes);
+  // O input desktop já tem o event listener: searchInput.addEventListener("input", renderNotes);
+
 
   // --- Create Note Logic ---
   createCollapsed.onclick = () => {
@@ -308,6 +351,12 @@ export function Notes() {
     newTitle.focus();
     currentColor = "white";
     renderColorPicker(colorPicker, (c) => (currentColor = c));
+    // Aplica a cor inicial ao container
+    element.querySelector("#create-note-container").className = 
+      element.querySelector("#create-note-container").className.replace(
+        /bg-\w+-\d+\/30|bg-\w+-\d+|bg-white|dark:bg-\w+-\d+\/30|dark:bg-\w+-\d+|dark:bg-gray-800/g, 
+        colorMap.white.split(' ').join(' ')
+      );
   };
 
   const closeCreate = async () => {
@@ -321,16 +370,47 @@ export function Notes() {
         color: currentColor,
         category: newCatSelect.value,
       });
+      showToast("Nota criada com sucesso!", "success"); // Feedback ao usuário
       newTitle.value = "";
       newContent.value = "";
+      newCatSelect.value = ""; // Reseta a categoria
+      currentColor = "white"; // Reseta a cor
       loadNotes();
     }
 
     createExpanded.classList.add("hidden");
     createCollapsed.classList.remove("hidden");
+    // Remove as classes de cor extras
+    element.querySelector("#create-note-container").className = 
+      element.querySelector("#create-note-container").className.replace(
+        /bg-\w+-\d+\/30|bg-\w+-\d+|bg-white|dark:bg-\w+-\d+\/30|dark:bg-\w+-\d+|dark:bg-gray-800/g, 
+        colorMap.white.split(' ').join(' ')
+      );
   };
 
   closeCreateBtn.onclick = closeCreate;
+  
+  // Adiciona evento de mudança de cor no container de criação
+  const updateCreateContainerColor = (color) => {
+    currentColor = color;
+    const container = element.querySelector("#create-note-container");
+    const bgClass = colorMap[color];
+    // Remove todas as classes de cor e aplica a nova
+    container.className = container.className.replace(
+      /bg-\w+-\d+\/30|bg-\w+-\d+|bg-white|dark:bg-\w+-\d+\/30|dark:bg-\w+-\d+|dark:bg-gray-800/g, 
+      ''
+    );
+    bgClass.split(' ').forEach(cls => container.classList.add(cls));
+    renderColorPicker(colorPicker, updateCreateContainerColor); // Renderiza novamente para destacar a cor
+  };
+  // Modifica a função inicial para usar a nova função de atualização de cor
+  createCollapsed.onclick = () => {
+    createCollapsed.classList.add("hidden");
+    createExpanded.classList.remove("hidden");
+    newTitle.focus();
+    updateCreateContainerColor("white");
+  };
+
 
   // --- Edit/Auto-save Logic ---
   const openEditModal = (note) => {
@@ -342,6 +422,7 @@ export function Notes() {
 
     // Update modal visual
     const bgClass = colorMap[note.color] || colorMap.white;
+    // Lógica aprimorada para remover todas as cores antes de adicionar a nova
     Object.values(colorMap).forEach((c) =>
       c.split(" ").forEach((cls) => modalContent.classList.remove(cls))
     );
@@ -349,10 +430,12 @@ export function Notes() {
 
     renderColorPicker(editColorPicker, (c) => {
       currentColor = c;
+      const newBgClass = colorMap[c];
+      // Lógica aprimorada para remover todas as cores antes de adicionar a nova
       Object.values(colorMap).forEach((cls) =>
         cls.split(" ").forEach((cl) => modalContent.classList.remove(cl))
       );
-      colorMap[c].split(" ").forEach((cl) => modalContent.classList.add(cl));
+      newBgClass.split(" ").forEach((cl) => modalContent.classList.add(cl));
       triggerAutoSave();
     });
 
@@ -362,16 +445,23 @@ export function Notes() {
       modalContent.classList.remove("scale-95", "opacity-0");
       modalContent.classList.add("scale-100", "opacity-100");
     }, 10);
+    // Para garantir que o foco seja na área de conteúdo em mobile
+    if (window.innerWidth < 640) {
+      editContent.focus();
+    }
   };
 
   const closeEditModal = () => {
+    if (autoSaveTimer) clearTimeout(autoSaveTimer);
+    saveStatus.style.opacity = "0"; // Garante que o status de salvamento desapareça
+    
     modalContent.classList.remove("scale-100", "opacity-100");
     modalContent.classList.add("scale-95", "opacity-0");
     setTimeout(() => {
       modal.classList.add("hidden");
       modal.classList.remove("flex");
       currentNoteId = null;
-      loadNotes();
+      loadNotes(); // Recarrega as notas para refletir as mudanças
     }, 200);
   };
 
@@ -396,6 +486,8 @@ export function Notes() {
       const idx = notes.findIndex((n) => n.id === currentNoteId);
       if (idx !== -1) notes[idx] = { ...notes[idx], ...note };
 
+      // Feedback de salvamento aprimorado
+      saveStatus.textContent = "Salvo";
       saveStatus.style.opacity = "1";
       setTimeout(() => (saveStatus.style.opacity = "0"), 2000);
     }, 1000); // 1 second debounce
@@ -407,17 +499,24 @@ export function Notes() {
 
   closeModalBtn.onclick = closeEditModal;
   modal.onclick = (e) => {
+    // Somente fecha se clicar diretamente no backdrop
     if (e.target === modal) closeEditModal();
   };
 
   deleteBtn.onclick = async () => {
-    showConfirm("Excluir esta nota?", async () => {
+    showConfirm("Excluir esta nota permanentemente?", async () => {
       await deleteNote(currentNoteId);
+      showToast("Nota excluída com sucesso!", "warning");
       closeEditModal();
     });
   };
 
-  searchInput.addEventListener("input", renderNotes);
+  // Sincroniza o input desktop com o mobile, se necessário
+  searchInput.addEventListener("input", () => {
+    mobileSearchInput.value = searchInput.value;
+    renderNotes();
+  });
+  // O input mobile já tem o event listener: mobileSearchInput.addEventListener("input", renderNotes);
 
   loadNotes();
   renderCategories();
