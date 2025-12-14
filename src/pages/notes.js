@@ -24,6 +24,7 @@ export function Notes() {
     cog: '<i class="fas fa-cog"></i>',
     bell: '<i class="fas fa-bell"></i>',
     theme: '<i class="fas fa-adjust"></i>',
+    edit: '<i class="fas fa-pen"></i>', // Ícone de Edição (Lápis)
     empty: '<i class="far fa-sticky-note text-6xl text-gray-300 dark:text-gray-600 mb-4"></i>',
   };
 
@@ -148,7 +149,8 @@ export function Notes() {
                                 </div>
                                 <div class="flex items-center gap-1">
                                     <button id="copy-note-btn" class="p-2 text-gray-400 hover:text-gray-700 rounded-full hover:bg-gray-200 transition-colors">${icons.copy}</button>
-                                    <button id="delete-note-btn" class="p-2 text-gray-400 hover:text-red-600 rounded-full hover:bg-red-50 transition-colors">${icons.trash}</button>
+                                    <!-- O botão de delete do modal agora chama a função de delete usando o ID global -->
+                                    <button id="delete-note-modal-btn" class="p-2 text-gray-400 hover:text-red-600 rounded-full hover:bg-red-50 transition-colors">${icons.trash}</button>
                                     <button id="close-modal-btn" class="ml-2 px-5 py-2 bg-gray-900 dark:bg-gray-700 text-white rounded-full text-sm font-medium hover:shadow-lg transition-all">Concluir</button>
                                 </div>
                             </div>
@@ -205,7 +207,7 @@ export function Notes() {
   
   // State
   let notes = [];
-  let currentNoteId = null; 
+  let currentNoteId = null; // ID da nota atualmente no modal de edição
   let currentColor = "white"; // Estado para cor da nota a ser criada/editada
   let autoSaveTimer = null;
 
@@ -269,6 +271,29 @@ export function Notes() {
     }, currentColor);
   };
 
+  const handleDeleteNote = (noteId) => {
+    console.log("Delete triggered for ID:", noteId);
+    showConfirm("Excluir esta nota?", async () => {
+        if(noteId) {
+            try {
+                await deleteNote(noteId);
+                // Se o modal estiver aberto, feche-o.
+                if (noteId === currentNoteId) {
+                    closeEditModal(false); // Não recarrega, pois loadNotes() já será chamado abaixo
+                }
+                showToast("Nota excluída", "success");
+                loadNotes(); // Recarrega as notas na grade
+            } catch (error) {
+                console.error("ERRO AO EXCLUIR NOTA:", error); 
+                showToast("Erro ao excluir nota. Verifique o console para detalhes.", "error");
+            }
+        } else {
+            console.warn("Delete aborted: Note ID is missing.");
+            showToast("Erro: ID da nota não foi carregado para exclusão.", "error");
+        }
+    });
+  };
+
   const renderNotes = () => {
     const grid = $("#notes-grid");
     const emptyState = $("#empty-state");
@@ -279,7 +304,6 @@ export function Notes() {
     if (!grid || !emptyState) return;
     grid.innerHTML = "";
 
-    // Proteção se notes for null/undefined
     const safeNotes = Array.isArray(notes) ? notes : [];
     
     const filtered = safeNotes.filter(
@@ -298,25 +322,44 @@ export function Notes() {
 
     filtered.forEach((note) => {
       const card = document.createElement("div");
-      // Usa a cor da nota salva. Se não houver, usa branco.
       const bgClass = colorMap[note.color] || colorMap.white; 
       
-      card.className = `${bgClass} p-5 rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer break-inside-avoid mb-4 group relative border hover:-translate-y-1`;
+      // Remove o cursor-pointer e o hover de -translate-y para evitar a interação no card principal
+      card.className = `${bgClass} p-5 rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 break-inside-avoid mb-4 group relative border`;
 
       card.innerHTML = `
-        <div class="flex justify-between items-start mb-2 pointer-events-none">
+        <div class="flex justify-between items-start mb-2">
             ${note.title ? `<h3 class="font-bold text-lg text-gray-900 dark:text-gray-100 line-clamp-2">${note.title}</h3>` : '<span></span>'}
         </div>
-        <p class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap text-sm leading-relaxed line-clamp-[8] font-medium pointer-events-none">${note.content || '<span class="italic text-gray-400">Nota vazia</span>'}</p>
-        <div class="mt-4 flex items-center justify-between min-h-[24px] pointer-events-none">
+        <p class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap text-sm leading-relaxed line-clamp-[8] font-medium">${note.content || '<span class="italic text-gray-400">Nota vazia</span>'}</p>
+        
+        <div class="mt-4 flex items-center justify-between min-h-[24px]">
              ${note.category ? `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-black/5 dark:bg-white/10 text-gray-600 dark:text-gray-300 uppercase tracking-wide border border-black/5 dark:border-white/5">${note.category}</span>` : '<span></span>'}
-             <div class="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                 <i class="fas fa-pen text-sm text-gray-400"></i>
+             
+             <!-- Action Buttons: Visíveis permanentemente -->
+             <div class="flex items-center gap-1">
+                 <button class="edit-note-btn p-1.5 rounded-full text-gray-500 hover:text-indigo-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" data-id="${note.id}" title="Editar Nota">
+                     ${icons.edit}
+                 </button>
+                 <button class="delete-note-card-btn p-1.5 rounded-full text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors" data-id="${note.id}" title="Excluir Nota">
+                     ${icons.trash}
+                 </button>
              </div>
         </div>
       `;
 
-      card.onclick = () => openEditModal(note);
+      // 1. Ouvinte para abrir o modal de edição (apenas no lápis)
+      card.querySelector('.edit-note-btn')?.addEventListener('click', (e) => {
+          e.stopPropagation(); // Evita qualquer propagação indesejada
+          openEditModal(note);
+      });
+      
+      // 2. Ouvinte para exclusão (apenas na lixeira)
+      card.querySelector('.delete-note-card-btn')?.addEventListener('click', (e) => {
+          e.stopPropagation(); // Essencial para evitar o bug de fechar modais
+          handleDeleteNote(note.id);
+      });
+      
       grid.appendChild(card);
     });
   };
@@ -334,7 +377,8 @@ export function Notes() {
     }
   };
 
-  // --- Category Logic ---
+
+  // --- Category Logic (Mantido inalterado) ---
   const renderCategories = async () => {
     const newSelect = $("#new-note-cat");
     const editSelect = $("#edit-note-cat");
@@ -494,7 +538,11 @@ export function Notes() {
     }
   };
 
-  const closeEditModal = () => {
+  /**
+   * Fecha o modal de edição.
+   * @param {boolean} shouldReload - Indica se deve recarregar as notas (true por padrão).
+   */
+  const closeEditModal = (shouldReload = true) => {
     if (autoSaveTimer) clearTimeout(autoSaveTimer);
     const saveStatus = $("#save-status");
     if(saveStatus) saveStatus.classList.add("opacity-0");
@@ -512,7 +560,7 @@ export function Notes() {
     setTimeout(() => {
       if(modal) modal.classList.add("hidden");
       currentNoteId = null;
-      loadNotes();
+      if (shouldReload) loadNotes();
     }, 300);
   };
 
@@ -545,31 +593,16 @@ export function Notes() {
   $("#edit-note-title")?.addEventListener("input", triggerAutoSave);
   $("#edit-note-content")?.addEventListener("input", triggerAutoSave);
   $("#edit-note-cat")?.addEventListener("change", triggerAutoSave);
-  $("#close-modal-btn")?.addEventListener("click", closeEditModal);
-  $("#edit-modal-backdrop")?.addEventListener("click", closeEditModal);
+  $("#close-modal-btn")?.addEventListener("click", () => closeEditModal(true));
+  $("#edit-modal-backdrop")?.addEventListener("click", () => closeEditModal(true));
 
-  // --- LÓGICA DE DELEÇÃO CORRIGIDA COM STOPPROPAGATION ---
-  $("#delete-note-btn")?.addEventListener("click", (e) => {
-      e.stopPropagation(); // <-- CORREÇÃO: Impede o clique de fechar o modal principal
-      console.log("Delete button clicked. Note ID to delete:", currentNoteId); 
-      showConfirm("Excluir esta nota?", async () => {
-          if(currentNoteId) {
-              try {
-                  console.log(`Executing deleteNote(${currentNoteId})`); 
-                  await deleteNote(currentNoteId);
-                  closeEditModal();
-                  showToast("Nota excluída", "success");
-              } catch (error) {
-                  console.error("ERRO AO EXCLUIR NOTA (Service failure):", error); 
-                  showToast("Erro ao excluir nota. Verifique o console para detalhes.", "error");
-              }
-          } else {
-              console.warn("Delete aborted: currentNoteId is missing.");
-              showToast("Erro: ID da nota não foi carregado para exclusão.", "error");
-          }
-      });
+  // Lógica de exclusão da lixeira dentro do MODAL
+  $("#delete-note-modal-btn")?.addEventListener("click", (e) => {
+      e.stopPropagation(); // ESSENCIAL: Impede que o clique feche o modal
+      handleDeleteNote(currentNoteId);
   });
 
+  // Lógica de cópia dentro do MODAL
   $("#copy-note-btn")?.addEventListener("click", async (e) => {
       e.stopPropagation(); // Adicionado por segurança
       const t = $("#edit-note-title")?.value || "";
