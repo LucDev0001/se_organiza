@@ -1,5 +1,8 @@
 import {
+  auth,
   db,
+  signInWithEmailAndPassword,
+  signOut,
   collection,
   getDocs,
   getDoc,
@@ -9,6 +12,9 @@ import {
   limit,
   doc,
   updateDoc,
+  deleteDoc,
+  onAuthStateChanged,
+  addDoc,
 } from "../services/firebase.js";
 import { showToast, showConfirm } from "../utils/ui.js";
 
@@ -18,43 +24,400 @@ export function Admin() {
     "flex flex-col h-full bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100";
 
   let allUsersData = [];
+  let currentSection = "dashboard"; // dashboard, users, logs, settings
+
+  // Helper para Logs de Auditoria
+  const logAction = async (action, targetUserId, details = {}) => {
+    const user = auth.currentUser;
+    if (!user) return;
+    try {
+      await addDoc(collection(db, "audit_logs"), {
+        action,
+        targetUserId,
+        details,
+        adminId: user.uid,
+        adminEmail: user.email,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (e) {
+      console.error("Erro ao registrar log:", e);
+    }
+  };
+
+  // Função toggleTheme para garantir funcionamento do botão de tema
+  window.toggleTheme =
+    window.toggleTheme ||
+    (() => {
+      if (document.documentElement.classList.contains("dark")) {
+        document.documentElement.classList.remove("dark");
+        localStorage.setItem("theme", "light");
+      } else {
+        document.documentElement.classList.add("dark");
+        localStorage.setItem("theme", "dark");
+      }
+    });
+
+  // --- Renderização do Login ---
+  const renderLogin = () => {
+    element.innerHTML = `
+      <div class="min-h-screen flex items-center justify-center bg-gray-900 px-4">
+        <div class="max-w-md w-full space-y-8 bg-gray-800 p-10 rounded-2xl shadow-2xl border border-gray-700">
+          <div class="text-center">
+            <div class="mx-auto h-16 w-16 bg-red-600 rounded-xl flex items-center justify-center mb-6 shadow-lg shadow-red-500/20">
+              <i class="fas fa-user-shield text-3xl text-white"></i>
+            </div>
+            <h2 class="text-3xl font-extrabold text-white tracking-tight">Área Restrita</h2>
+            <p class="mt-2 text-sm text-gray-400">Acesso exclusivo para administradores.</p>
+          </div>
+          <form class="mt-8 space-y-6" id="admin-login-form">
+            <div class="space-y-4">
+              <div>
+                <label for="email" class="sr-only">Email</label>
+                <input id="email" name="email" type="email" required class="appearance-none rounded-lg relative block w-full px-3 py-3 border border-gray-600 bg-gray-700 placeholder-gray-400 text-white focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent sm:text-sm" placeholder="Email de Admin">
+              </div>
+              <div>
+                <label for="password" class="sr-only">Senha</label>
+                <input id="password" name="password" type="password" required class="appearance-none rounded-lg relative block w-full px-3 py-3 border border-gray-600 bg-gray-700 placeholder-gray-400 text-white focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent sm:text-sm" placeholder="Senha">
+              </div>
+            </div>
+            <button type="submit" class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all shadow-lg">
+              <span class="absolute left-0 inset-y-0 flex items-center pl-3">
+                <i class="fas fa-lock group-hover:text-red-200 transition-colors"></i>
+              </span>
+              Acessar Painel
+            </button>
+          </form>
+          <div class="text-center mt-4">
+             <a href="#/login" class="text-sm text-gray-500 hover:text-gray-300">Voltar para o site principal</a>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const form = element.querySelector("#admin-login-form");
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      const email = form.email.value.trim();
+      const password = form.password.value;
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+        showToast("Login realizado! Carregando...", "success");
+      } catch (error) {
+        showToast("Erro de autenticação.", "error");
+        console.error("Admin Login Error:", error);
+        let msg = "Erro de autenticação.";
+        if (
+          error.code === "auth/invalid-credential" ||
+          error.code === "auth/user-not-found" ||
+          error.code === "auth/wrong-password"
+        ) {
+          msg = "Email ou senha incorretos.";
+        } else if (error.code === "auth/too-many-requests") {
+          msg = "Muitas tentativas. Tente novamente mais tarde.";
+        }
+        showToast(msg, "error");
+      }
+    };
+  };
+
+  const renderAccessDenied = () => {
+    element.innerHTML = `
+      <div class="min-h-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900 text-center px-4">
+        <i class="fas fa-ban text-6xl text-red-500 mb-4"></i>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">Acesso Negado</h1>
+        <p class="text-gray-600 dark:text-gray-400 mb-6">Seu usuário não tem permissão para acessar este painel.</p>
+        <button id="btn-logout-denied" class="bg-gray-800 text-white px-6 py-2 rounded-lg hover:bg-gray-700">Sair</button>
+      </div>
+    `;
+    element.querySelector("#btn-logout-denied").onclick = async () => {
+      await signOut(auth);
+      window.location.hash = "/login";
+    };
+  };
 
   const renderDashboard = () => {
     element.innerHTML = `
-        <header class="bg-white dark:bg-gray-800 shadow-sm px-6 py-4 flex items-center justify-between sticky top-0 z-10">
-            <div class="flex items-center gap-4">
-                <button onclick="window.location.hash='/dashboard'" class="text-gray-500 hover:text-indigo-600 transition-colors">
-                    <i class="fas fa-arrow-left text-xl"></i> <span class="text-sm font-medium ml-1">Voltar</span>
-                </button>
-                <h1 class="text-xl font-bold text-gray-800 dark:text-white">Painel Administrativo</h1>
-            </div>
-            <div class="flex items-center gap-4">
-                <span class="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded hidden sm:inline-block">ADMIN</span>
-                <button onclick="window.toggleTheme()" class="text-gray-500 hover:text-yellow-500 transition-colors">
-                    <i class="fas fa-adjust text-xl"></i>
-                </button>
-                <button onclick="window.location.hash='/notifications'" class="text-gray-500 hover:text-indigo-600 transition-colors relative">
-                    <i class="fas fa-bell text-xl"></i>
-                    <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center">3</span>
-                </button>
-            </div>
-        </header>
+        <div class="flex h-screen overflow-hidden bg-gray-100 dark:bg-gray-900">
+            <!-- Mobile Overlay -->
+            <div id="sidebar-overlay" class="fixed inset-0 bg-black/50 z-20 hidden transition-opacity opacity-0 md:hidden"></div>
 
-        <main class="flex-1 p-6 max-w-6xl mx-auto w-full overflow-y-auto space-y-8">
-            
+            <!-- Sidebar -->
+            <aside id="admin-sidebar" class="fixed inset-y-0 left-0 z-30 w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col transform -translate-x-full transition-transform duration-300 md:relative md:translate-x-0">
+                <div class="h-16 flex items-center px-6 border-b border-gray-200 dark:border-gray-700">
+                    <i class="fas fa-shield-alt text-indigo-600 text-2xl mr-2"></i>
+                    <span class="font-bold text-lg text-gray-800 dark:text-white">Admin Panel</span>
+                </div>
+                <nav class="flex-1 p-4 space-y-1 overflow-y-auto">
+                    <button data-section="dashboard" class="nav-item w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+                      currentSection === "dashboard"
+                        ? "bg-indigo-50 text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-400"
+                        : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    }">
+                        <i class="fas fa-chart-line w-6"></i> Visão Geral
+                    </button>
+                    <button data-section="users" class="nav-item w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+                      currentSection === "users"
+                        ? "bg-indigo-50 text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-400"
+                        : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    }">
+                        <i class="fas fa-users w-6"></i> Usuários
+                    </button>
+                    <button data-section="logs" class="nav-item w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+                      currentSection === "logs"
+                        ? "bg-indigo-50 text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-400"
+                        : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    }">
+                        <i class="fas fa-list-alt w-6"></i> Logs do Sistema
+                    </button>
+                    <button data-section="settings" class="nav-item w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+                      currentSection === "settings"
+                        ? "bg-indigo-50 text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-400"
+                        : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    }">
+                        <i class="fas fa-cogs w-6"></i> Configurações
+                    </button>
+                </nav>
+                <div class="p-4 border-t border-gray-200 dark:border-gray-700">
+                    <button id="admin-logout" class="w-full flex items-center px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">
+                        <i class="fas fa-sign-out-alt w-6"></i> Sair
+                    </button>
+                </div>
+            </aside>
+
+            <!-- Main Content -->
+            <div class="flex-1 flex flex-col overflow-hidden">
+                <header class="bg-white dark:bg-gray-800 shadow-sm px-6 py-4 flex items-center justify-between z-10">
+                    <div class="flex items-center gap-4 md:hidden">
+                        <button id="mobile-menu-btn" class="text-gray-500 hover:text-gray-700"><i class="fas fa-bars text-xl"></i></button>
+                        <h1 class="text-lg font-bold text-gray-800 dark:text-white">Admin</h1>
+                    </div>
+                    <div class="hidden md:block">
+                        <h2 class="text-xl font-bold text-gray-800 dark:text-white capitalize" id="page-title">${
+                          currentSection === "dashboard"
+                            ? "Visão Geral"
+                            : currentSection
+                        }</h2>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full font-bold">Online</span>
+                        <button onclick="window.toggleTheme()" class="text-gray-500 hover:text-yellow-500 transition-colors">
+                            <i class="fas fa-adjust text-xl"></i>
+                        </button>
+                    </div>
+                </header>
+
+                <main class="flex-1 overflow-y-auto p-6" id="main-content-area">
+                    <!-- Content injected via JS based on section -->
+                    <div class="flex justify-center items-center h-full">
+                        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+                    </div>
+                </main>
+            </div>
+        </div>
+    `;
+
+    // Mobile Menu Logic
+    const sidebar = element.querySelector("#admin-sidebar");
+    const overlay = element.querySelector("#sidebar-overlay");
+    const menuBtn = element.querySelector("#mobile-menu-btn");
+
+    const toggleMenu = () => {
+      const isClosed = sidebar.classList.contains("-translate-x-full");
+      if (isClosed) {
+        sidebar.classList.remove("-translate-x-full");
+        overlay.classList.remove("hidden");
+        requestAnimationFrame(() => overlay.classList.remove("opacity-0"));
+      } else {
+        sidebar.classList.add("-translate-x-full");
+        overlay.classList.add("opacity-0");
+        setTimeout(() => overlay.classList.add("hidden"), 300);
+      }
+    };
+
+    if (menuBtn) menuBtn.onclick = toggleMenu;
+    if (overlay) overlay.onclick = toggleMenu;
+
+    // Setup Navigation
+    element.querySelectorAll(".nav-item").forEach((btn) => {
+      btn.onclick = () => {
+        currentSection = btn.dataset.section;
+        renderDashboard(); // Re-render full layout to update active state
+      };
+    });
+
+    element.querySelector("#admin-logout").onclick = async () => {
+      await signOut(auth);
+      window.location.hash = "/login";
+    };
+
+    loadSectionContent();
+  };
+
+  const loadSectionContent = async () => {
+    const container = element.querySelector("#main-content-area");
+
+    if (currentSection === "dashboard" || currentSection === "users") {
+      // Carrega dados reais para Dashboard e Users
+      await loadRealData(container);
+    } else if (currentSection === "logs") {
+      await renderLogs(container);
+    } else if (currentSection === "settings") {
+      renderSettings(container);
+    }
+  };
+
+  const renderLogs = async (container) => {
+    container.innerHTML =
+      '<div class="flex justify-center items-center h-64"><div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div></div>';
+
+    try {
+      const q = query(
+        collection(db, "audit_logs"),
+        orderBy("timestamp", "desc"),
+        limit(50)
+      );
+      const snapshot = await getDocs(q);
+      const logs = snapshot.docs.map((d) => d.data());
+
+      container.innerHTML = `
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
+            <h3 class="text-lg font-bold mb-4 text-gray-800 dark:text-white">Logs de Auditoria do Sistema</h3>
+            <div class="space-y-4">
+                ${
+                  logs.length > 0
+                    ? logs
+                        .map(
+                          (log) => `
+                <div class="flex items-start gap-3 pb-4 border-b border-gray-100 dark:border-gray-700 last:border-0">
+                    <div class="mt-1"><i class="fas fa-history text-indigo-500"></i></div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-900 dark:text-white">${
+                          log.action
+                        }</p>
+                        <p class="text-xs text-gray-500">Admin: ${
+                          log.adminEmail
+                        } | Alvo: ${log.targetUserId}</p>
+                        <span class="text-xs text-gray-400">${new Date(
+                          log.timestamp
+                        ).toLocaleString()}</span>
+                        ${
+                          log.details
+                            ? `<div class="text-xs text-gray-400 font-mono mt-1 truncate max-w-md">${JSON.stringify(
+                                log.details
+                              )}</div>`
+                            : ""
+                        }
+                    </div>
+                </div>`
+                        )
+                        .join("")
+                    : '<p class="text-gray-500">Nenhum log encontrado.</p>'
+                }
+            </div>
+        </div>
+      `;
+    } catch (error) {
+      console.error("Erro ao carregar logs:", error);
+      container.innerHTML = `<p class="text-red-500 p-6">Erro ao carregar logs: ${error.message}</p>`;
+    }
+  };
+
+  const renderSettings = (container) => {
+    container.innerHTML = `
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 max-w-2xl">
+            <h3 class="text-lg font-bold mb-6 text-gray-800 dark:text-white">Configurações Globais</h3>
+            <div class="space-y-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h4 class="font-medium text-gray-900 dark:text-white">Manutenção do Sistema</h4>
+                        <p class="text-sm text-gray-500">Bloqueia o acesso para todos os usuários exceto admins.</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" class="sr-only peer">
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                    </label>
+                </div>
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h4 class="font-medium text-gray-900 dark:text-white">Novos Cadastros</h4>
+                        <p class="text-sm text-gray-500">Permitir que novos usuários se registrem.</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" checked class="sr-only peer">
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                    </label>
+                </div>
+            </div>
+        </div>
+      `;
+  };
+
+  const loadRealData = async (container) => {
+    try {
+      const [usersSnap, transactionsSnap, tasksSnap] = await Promise.all([
+        getDocs(collection(db, "users")),
+        getDocs(collection(db, "transactions")),
+        getDocs(collection(db, "tasks")),
+      ]);
+
+      const users = usersSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      const transactions = transactionsSnap.docs.map((d) => d.data());
+      const tasks = tasksSnap.docs.map((d) => d.data());
+
+      // Process User Stats
+      const usersWithStats = users.map((user) => {
+        const userTrans = transactions.filter((t) => t.userId === user.id);
+        const userTasks = tasks.filter((t) => t.userId === user.id);
+        const dates = [
+          ...(user.createdAt ? [new Date(user.createdAt)] : []),
+          ...userTrans.map((t) => (t.date ? new Date(t.date) : null)),
+          ...userTasks.map((t) =>
+            t.createdAt || t.date ? new Date(t.createdAt || t.date) : null
+          ),
+        ]
+          .filter(Boolean)
+          .map((d) => d.getTime());
+        const lastActivity = dates.length > 0 ? Math.max(...dates) : null;
+        return {
+          ...user,
+          transCount: userTrans.length,
+          taskCount: userTasks.length,
+          lastActivity,
+        };
+      });
+
+      usersWithStats.sort(
+        (a, b) => (b.lastActivity || 0) - (a.lastActivity || 0)
+      );
+      allUsersData = usersWithStats;
+
+      if (currentSection === "dashboard") {
+        renderDashboardContent(container, users, transactions, tasks);
+      } else {
+        renderUsersContent(container, usersWithStats);
+      }
+    } catch (error) {
+      console.error("Admin Load Error:", error);
+      container.innerHTML = `<p class="text-red-500">Erro ao carregar dados: ${error.message}</p>`;
+    }
+  };
+
+  const renderDashboardContent = (container, users, transactions, tasks) => {
+    container.innerHTML = `
+        <div class="space-y-8 animate-fade-in">
             <!-- Stats Overview -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border-l-4 border-indigo-500">
                     <p class="text-sm text-gray-500 dark:text-gray-400">Total de Usuários</p>
-                    <h3 id="total-users" class="text-2xl font-bold text-gray-800 dark:text-white">...</h3>
+                    <h3 class="text-2xl font-bold text-gray-800 dark:text-white">${users.length}</h3>
                 </div>
                 <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border-l-4 border-emerald-500">
                     <p class="text-sm text-gray-500 dark:text-gray-400">Total de Transações</p>
-                    <h3 id="total-transactions" class="text-2xl font-bold text-gray-800 dark:text-white">...</h3>
+                    <h3 class="text-2xl font-bold text-gray-800 dark:text-white">${transactions.length}</h3>
                 </div>
                  <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border-l-4 border-blue-500">
                     <p class="text-sm text-gray-500 dark:text-gray-400">Tarefas no Sistema</p>
-                    <h3 id="total-tasks" class="text-2xl font-bold text-gray-800 dark:text-white">...</h3>
+                    <h3 class="text-2xl font-bold text-gray-800 dark:text-white">${tasks.length}</h3>
                 </div>
             </div>
 
@@ -73,8 +436,14 @@ export function Admin() {
                     </div>
                 </div>
             </div>
+        </div>
+      `;
+    renderCharts(users);
+  };
 
-            <!-- Users Table -->
+  const renderUsersContent = (container, usersList) => {
+    container.innerHTML = `
+        <div class="space-y-6 animate-fade-in">
             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
                 <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-center gap-4">
                     <h2 class="text-lg font-semibold text-gray-800 dark:text-white">Gerenciar Usuários</h2>
@@ -103,7 +472,7 @@ export function Admin() {
                             </tr>
                         </thead>
                         <tbody id="users-table-body">
-                            <tr><td colspan="3" class="px-6 py-4 text-center">Carregando...</td></tr>
+                            <!-- Rows -->
                         </tbody>
                     </table>
                 </div>
@@ -143,72 +512,73 @@ export function Admin() {
                     </form>
                 </div>
             </div>
-        </main>
-    `;
+        </div>
+      `;
+
+    // --- Lógica do Modal de Assinatura ---
+    const subModal = element.querySelector("#subscription-modal");
+    const subForm = element.querySelector("#subscription-form");
+    const datesContainer = element.querySelector("#dates-container");
+    const statusSelect = subForm.querySelector("select[name='isPremium']");
+
+    // Toggle visibility of dates based on status
+    statusSelect.onchange = () => {
+      if (statusSelect.value === "true") {
+        datesContainer.classList.remove("hidden");
+      } else {
+        datesContainer.classList.add("hidden");
+      }
+    };
+
+    // Quick Date Buttons
+    subForm.querySelectorAll(".quick-date").forEach((btn) => {
+      btn.onclick = () => {
+        const days = parseInt(btn.dataset.days);
+        const start = new Date();
+        const end = new Date();
+        end.setDate(end.getDate() + days);
+
+        subForm.startDate.valueAsDate = start;
+        subForm.endDate.valueAsDate = end;
+      };
+    });
+
+    element.querySelector("#close-sub-modal").onclick = () => {
+      subModal.classList.add("hidden");
+      subModal.classList.remove("flex");
+    };
+
+    subForm.onsubmit = async (e) => {
+      e.preventDefault();
+      const uid = subForm.userId.value;
+      const isPremium = subForm.isPremium.value === "true";
+
+      const updateData = {
+        isPremium: isPremium,
+        premiumStartDate: isPremium ? subForm.startDate.value : null,
+        premiumEndDate: isPremium ? subForm.endDate.value : null,
+      };
+
+      try {
+        await updateDoc(doc(db, "users", uid), updateData);
+        await logAction("UPDATE_SUBSCRIPTION", uid, updateData);
+        showToast("Assinatura atualizada!");
+        subModal.classList.add("hidden");
+        subModal.classList.remove("flex");
+        loadSectionContent(); // Reload
+      } catch (error) {
+        console.error(error);
+        showToast("Erro ao salvar.", "error");
+      }
+    };
+
+    renderTableRows(usersList);
     setupDashboardListeners();
-    loadData();
   };
 
-  const loadData = async () => {
-    try {
-      // Fetch all data in parallel for stats
-      const [usersSnap, transactionsSnap, tasksSnap] = await Promise.all([
-        getDocs(collection(db, "users")),
-        getDocs(collection(db, "transactions")),
-        getDocs(collection(db, "tasks")),
-      ]);
-
-      const users = usersSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      const transactions = transactionsSnap.docs.map((d) => d.data());
-      const tasks = tasksSnap.docs.map((d) => d.data());
-
-      // Update Global Stats
-      document.getElementById("total-users").textContent = users.length;
-      document.getElementById("total-transactions").textContent =
-        transactions.length;
-      document.getElementById("total-tasks").textContent = tasks.length;
-
-      // Process User Stats
-      const usersWithStats = users.map((user) => {
-        const userTrans = transactions.filter((t) => t.userId === user.id);
-        const userTasks = tasks.filter((t) => t.userId === user.id);
-
-        // Calculate Last Activity
-        const dates = [
-          ...(user.createdAt ? [new Date(user.createdAt)] : []),
-          ...userTrans.map((t) => (t.date ? new Date(t.date) : null)),
-          ...userTasks.map((t) =>
-            t.createdAt || t.date ? new Date(t.createdAt || t.date) : null
-          ),
-        ]
-          .filter(Boolean)
-          .map((d) => d.getTime());
-
-        const lastActivity = dates.length > 0 ? Math.max(...dates) : null;
-
-        return {
-          ...user,
-          transCount: userTrans.length,
-          taskCount: userTasks.length,
-          lastActivity,
-        };
-      });
-
-      // Sort by Last Activity (Most recent first)
-      usersWithStats.sort(
-        (a, b) => (b.lastActivity || 0) - (a.lastActivity || 0)
-      );
-
-      allUsersData = usersWithStats;
-      renderTable(allUsersData);
-      renderCharts(users);
-    } catch (error) {
-      console.error("Admin Load Error:", error);
-    }
-  };
-
-  const renderTable = (usersList) => {
-    const usersTable = document.getElementById("users-table-body");
+  const renderTableRows = (usersList) => {
+    const usersTable = element.querySelector("#users-table-body");
+    if (!usersTable) return;
 
     if (usersList.length === 0) {
       usersTable.innerHTML =
@@ -274,7 +644,28 @@ export function Admin() {
                     <td class="px-6 py-4 text-xs text-gray-500">
                         ${endDate ? endDate.toLocaleDateString() : "-"}
                     </td>
-                    <td class="px-6 py-4 text-right">
+                    <td class="px-6 py-4 text-right flex justify-end items-center gap-2">
+                        <button class="toggle-admin-btn text-yellow-500 hover:text-yellow-600" title="${
+                          u.isAdmin ? "Remover Admin" : "Tornar Admin"
+                        }" data-id="${u.id}" data-admin="${u.isAdmin || false}">
+                            <i class="fas ${
+                              u.isAdmin ? "fa-user-shield" : "fa-shield-alt"
+                            }"></i>
+                        </button>
+                        <button class="toggle-suspend-btn text-orange-500 hover:text-orange-600" title="${
+                          u.isSuspended ? "Reativar" : "Suspender"
+                        }" data-id="${u.id}" data-suspended="${
+          u.isSuspended || false
+        }">
+                            <i class="fas ${
+                              u.isSuspended ? "fa-user-check" : "fa-ban"
+                            }"></i>
+                        </button>
+                        <button class="delete-user-btn text-red-600 hover:text-red-800" title="Excluir Dados" data-id="${
+                          u.id
+                        }">
+                            <i class="fas fa-trash"></i>
+                        </button>
                         <button class="view-profile-btn text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium" data-id="${
                           u.id
                         }" title="Ver Detalhes">
@@ -286,61 +677,10 @@ export function Admin() {
       })
       .join("");
 
-    // --- Lógica do Modal de Assinatura ---
+    // Re-query elements for row listeners
     const subModal = element.querySelector("#subscription-modal");
     const subForm = element.querySelector("#subscription-form");
     const datesContainer = element.querySelector("#dates-container");
-    const statusSelect = subForm.querySelector("select[name='isPremium']");
-
-    // Toggle visibility of dates based on status
-    statusSelect.onchange = () => {
-      if (statusSelect.value === "true") {
-        datesContainer.classList.remove("hidden");
-      } else {
-        datesContainer.classList.add("hidden");
-      }
-    };
-
-    // Quick Date Buttons
-    subForm.querySelectorAll(".quick-date").forEach((btn) => {
-      btn.onclick = () => {
-        const days = parseInt(btn.dataset.days);
-        const start = new Date();
-        const end = new Date();
-        end.setDate(end.getDate() + days);
-
-        subForm.startDate.valueAsDate = start;
-        subForm.endDate.valueAsDate = end;
-      };
-    });
-
-    element.querySelector("#close-sub-modal").onclick = () => {
-      subModal.classList.add("hidden");
-      subModal.classList.remove("flex");
-    };
-
-    subForm.onsubmit = async (e) => {
-      e.preventDefault();
-      const uid = subForm.userId.value;
-      const isPremium = subForm.isPremium.value === "true";
-
-      const updateData = {
-        isPremium: isPremium,
-        premiumStartDate: isPremium ? subForm.startDate.value : null,
-        premiumEndDate: isPremium ? subForm.endDate.value : null,
-      };
-
-      try {
-        await updateDoc(doc(db, "users", uid), updateData);
-        showToast("Assinatura atualizada!");
-        subModal.classList.add("hidden");
-        subModal.classList.remove("flex");
-        loadData();
-      } catch (error) {
-        console.error(error);
-        showToast("Erro ao salvar.", "error");
-      }
-    };
 
     // Open Modal on Click
     usersTable.querySelectorAll(".toggle-premium-btn").forEach((btn) => {
@@ -376,6 +716,67 @@ export function Admin() {
         showUserDetails(btn.dataset.id);
       };
     });
+
+    // Toggle Admin
+    usersTable.querySelectorAll(".toggle-admin-btn").forEach((btn) => {
+      btn.onclick = async () => {
+        const uid = btn.dataset.id;
+        const isAdmin = btn.dataset.admin === "true";
+        try {
+          await updateDoc(doc(db, "users", uid), { isAdmin: !isAdmin });
+          await logAction(isAdmin ? "REMOVE_ADMIN" : "MAKE_ADMIN", uid, {
+            newValue: !isAdmin,
+          });
+          showToast(isAdmin ? "Admin removido" : "Usuário agora é Admin");
+          loadSectionContent();
+        } catch (e) {
+          console.error(e);
+          showToast("Erro ao atualizar permissão", "error");
+        }
+      };
+    });
+
+    // Toggle Suspend
+    usersTable.querySelectorAll(".toggle-suspend-btn").forEach((btn) => {
+      btn.onclick = async () => {
+        const uid = btn.dataset.id;
+        const isSuspended = btn.dataset.suspended === "true";
+        try {
+          await updateDoc(doc(db, "users", uid), { isSuspended: !isSuspended });
+          await logAction(
+            isSuspended ? "REACTIVATE_USER" : "SUSPEND_USER",
+            uid,
+            { newValue: !isSuspended }
+          );
+          showToast(isSuspended ? "Usuário reativado" : "Usuário suspenso");
+          loadSectionContent();
+        } catch (e) {
+          console.error(e);
+          showToast("Erro ao atualizar status", "error");
+        }
+      };
+    });
+
+    // Delete User Data
+    usersTable.querySelectorAll(".delete-user-btn").forEach((btn) => {
+      btn.onclick = () => {
+        const uid = btn.dataset.id;
+        showConfirm(
+          "Excluir dados deste usuário? A conta de login permanecerá (Limitação Spark).",
+          async () => {
+            try {
+              await deleteDoc(doc(db, "users", uid));
+              await logAction("DELETE_USER_DATA", uid);
+              showToast("Dados do usuário excluídos");
+              loadSectionContent();
+            } catch (e) {
+              console.error(e);
+              showToast("Erro ao excluir dados", "error");
+            }
+          }
+        );
+      };
+    });
   };
 
   const setupDashboardListeners = () => {
@@ -388,7 +789,7 @@ export function Admin() {
             (u.email && u.email.toLowerCase().includes(term)) ||
             (u.id && u.id.toLowerCase().includes(term))
         );
-        renderTable(filtered);
+        renderTableRows(filtered);
       });
     }
 
@@ -491,7 +892,7 @@ export function Admin() {
     }
 
     // Growth Chart
-    const ctx = document.getElementById("userGrowthChart").getContext("2d");
+    const ctx = element.querySelector("#userGrowthChart").getContext("2d");
 
     const labels = [];
     const data = [];
@@ -536,8 +937,8 @@ export function Admin() {
     });
 
     // Distribution Chart
-    const ctxPie = document
-      .getElementById("userDistributionChart")
+    const ctxPie = element
+      .querySelector("#userDistributionChart")
       .getContext("2d");
     const premiumCount = users.filter((u) => u.isPremium).length;
     const freeCount = users.length - premiumCount;
@@ -565,7 +966,7 @@ export function Admin() {
   };
 
   const showUserDetails = async (userId) => {
-    const main = element.querySelector("main");
+    const main = element.querySelector("#main-content-area");
     main.innerHTML =
       '<div class="flex justify-center items-center h-64"><div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div></div>';
 
@@ -585,7 +986,7 @@ export function Admin() {
 
       if (!userDoc.exists()) {
         showToast("Usuário não encontrado", "error");
-        renderDashboard();
+        loadSectionContent();
         return;
       }
 
@@ -754,14 +1155,39 @@ export function Admin() {
             </div>
         `;
 
-      document.getElementById("back-to-dashboard").onclick = renderDashboard;
+      element.querySelector("#back-to-dashboard").onclick = loadSectionContent;
     } catch (error) {
-      console.error(error);
-      showToast("Erro ao carregar perfil", "error");
-      renderDashboard();
+      console.error("Erro ao carregar detalhes:", error);
+      showToast("Erro ao carregar detalhes do usuário.", "error");
     }
   };
 
-  renderDashboard();
+  const checkAuth = () => {
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        // Super Admin Bypass para seu ID
+        if (user.uid === "Z32Qc1LfgkTTUh0AfTi7f5ir0Go2") {
+          renderDashboard();
+          return;
+        }
+
+        try {
+          const userDoc = await getDoc(doc(db, "users", user.uid));
+          if (userDoc.exists() && userDoc.data().isAdmin) {
+            renderDashboard();
+          } else {
+            renderAccessDenied();
+          }
+        } catch (error) {
+          console.error("Auth check error:", error);
+          renderAccessDenied();
+        }
+      } else {
+        renderLogin();
+      }
+    });
+  };
+
+  checkAuth();
   return element;
 }

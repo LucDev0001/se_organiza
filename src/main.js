@@ -16,7 +16,8 @@ import { Admin } from "./pages/admin.js";
 import { Notes } from "./pages/notes.js";
 import { About } from "./pages/about.js";
 import { Plans } from "./pages/plans.js";
-import { Terms, Privacy } from "./pages/legal.js";
+import { Terms } from "./pages/terms.js";
+import { Privacy } from "./pages/privacy.js";
 import { Profile } from "./pages/profile.js";
 import { Notifications, updateGlobalBadge } from "./pages/notifications.js";
 import { Landing } from "./pages/landing.js";
@@ -74,18 +75,9 @@ async function router() {
     return;
   }
 
-  // Verificação de Email (Bloqueio)
-  if (state.user && !state.user.emailVerified && hash !== "/login") {
-    showToast("Verifique seu email para acessar o sistema.", "info");
-    await auth.signOut();
-    return;
-  }
-
   // Redirecionamento se logado
   if (state.user && (hash === "/login" || hash === "/")) {
-    if (state.user.emailVerified) {
-      window.location.hash = "/dashboard";
-    }
+    window.location.hash = "/dashboard";
     return;
   }
 

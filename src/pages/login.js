@@ -2,6 +2,13 @@ import {
   auth,
   signInWithEmailAndPassword,
   signOut,
+  db,
+  doc,
+  getDoc,
+  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
+  googleProvider,
 } from "../services/firebase.js";
 import { showToast } from "../utils/ui.js";
 
@@ -76,6 +83,20 @@ export function Login() {
                 </button>
             </form>
 
+            <div class="relative my-6">
+                <div class="absolute inset-0 flex items-center">
+                    <div class="w-full border-t border-gray-300 dark:border-gray-600"></div>
+                </div>
+                <div class="relative flex justify-center text-sm">
+                    <span class="px-2 bg-white dark:bg-gray-800 text-gray-500">Ou continue com</span>
+                </div>
+            </div>
+
+            <button type="button" id="btn-google" class="w-full flex justify-center items-center gap-3 py-3 px-4 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" class="w-5 h-5">
+                Entrar com Google
+            </button>
+            
             <p class="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
                 Não tem uma conta?
                 <a href="#/register" class="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 hover:underline transition-colors">
@@ -104,19 +125,73 @@ export function Login() {
     const password = form.password.value;
 
     try {
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-
+      await signInWithEmailAndPassword(auth, email, password);
       showToast("Bem-vindo de volta!");
       window.location.hash = "/dashboard";
     } catch (error) {
       console.error(error);
-      showToast("Erro ao fazer login. Verifique suas credenciais.", "error");
+      let msg = "Erro ao fazer login.";
+      if (
+        error.code === "auth/invalid-credential" ||
+        error.code === "auth/wrong-password" ||
+        error.code === "auth/user-not-found"
+      ) {
+        msg = "Email ou senha incorretos.";
+      } else if (error.code === "auth/too-many-requests") {
+        msg = "Muitas tentativas. Tente novamente mais tarde.";
+      }
+      showToast(msg, "error");
     }
   });
+
+  // Lógica de Login com Google
+  const btnGoogle = element.querySelector("#btn-google");
+  btnGoogle.onclick = async () => {
+    // Verifica se é PWA (Standalone) ou Mobile para usar Redirect (mais confiável)
+    const isPwa =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      window.navigator.standalone ||
+      /Mobi|Android/i.test(navigator.userAgent);
+
+    if (isPwa) {
+      try {
+        await signInWithRedirect(auth, googleProvider);
+        return; // O redirecionamento ocorrerá, interrompe o fluxo aqui
+      } catch (error) {
+        console.error(error);
+        showToast("Erro ao iniciar login com Google.", "error");
+      }
+    }
+
+    // Fallback para Desktop (Popup)
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      await handleGoogleLoginSuccess(result.user);
+    } catch (error) {
+      console.error(error);
+      showToast("Erro ao entrar com Google.", "error");
+    }
+  };
+
+  // Processar retorno do Redirect (necessário para PWA)
+  getRedirectResult(auth)
+    .then((result) => {
+      if (result) handleGoogleLoginSuccess(result.user);
+    })
+    .catch((error) => console.error(error));
+
+  const handleGoogleLoginSuccess = async (user) => {
+    // Verificar suspensão
+    const userDoc = await getDoc(doc(db, "users", user.uid));
+    if (userDoc.exists() && userDoc.data().isSuspended) {
+      await signOut(auth);
+      showToast("Conta suspensa. Entre em contato com o suporte.", "error");
+      return;
+    }
+
+    showToast(`Bem-vindo, ${user.displayName || "Usuário"}!`);
+    window.location.hash = "/dashboard";
+  };
 
   return element;
 }

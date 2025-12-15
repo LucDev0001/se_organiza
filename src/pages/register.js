@@ -2,10 +2,16 @@ import {
   auth,
   createUserWithEmailAndPassword,
   updateProfile,
-  sendEmailVerification,
+  db,
+  doc,
+  setDoc,
+  getDoc,
+  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
+  googleProvider,
 } from "../services/firebase.js";
 import { showToast } from "../utils/ui.js";
-import { db, doc, setDoc } from "../services/firebase.js"; // Assuming we need to create user doc
 
 export function Register() {
   const element = document.createElement("div");
@@ -78,6 +84,13 @@ export function Register() {
                     </div>
                 </div>
 
+                <div class="flex items-center">
+                    <input id="terms" name="terms" type="checkbox" required class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded cursor-pointer">
+                    <label for="terms" class="ml-2 block text-sm text-gray-900 dark:text-gray-300">
+                        Li e aceito os <a href="#/terms" target="_blank" class="text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 hover:underline">Termos de Uso</a> e <a href="#/privacy" target="_blank" class="text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 hover:underline">Política de Privacidade</a>
+                    </label>
+                </div>
+
                 <button type="submit" id="btn-register" class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50">
                     <span class="absolute left-0 inset-y-0 flex items-center pl-3">
                         <i class="fas fa-user-plus group-hover:text-indigo-200 transition-colors"></i>
@@ -85,6 +98,20 @@ export function Register() {
                     Criar Conta
                 </button>
             </form>
+
+            <div class="relative my-6">
+                <div class="absolute inset-0 flex items-center">
+                    <div class="w-full border-t border-gray-300 dark:border-gray-600"></div>
+                </div>
+                <div class="relative flex justify-center text-sm">
+                    <span class="px-2 bg-white dark:bg-gray-800 text-gray-500">Ou cadastre-se com</span>
+                </div>
+            </div>
+
+            <button type="button" id="btn-google-reg" class="w-full flex justify-center items-center gap-3 py-3 px-4 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" class="w-5 h-5">
+                Google
+            </button>
 
             <p class="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
                 Já tem uma conta?
@@ -114,6 +141,11 @@ export function Register() {
       const email = form.email.value;
       const password = form.password.value;
       const confirmPassword = form["confirm-password"].value;
+
+      if (!form.terms.checked) {
+        showToast("Você deve aceitar os termos para continuar.", "error");
+        return;
+      }
 
       if (password !== confirmPassword) {
         showToast("As senhas não coincidem.", "error");
@@ -146,8 +178,7 @@ export function Register() {
           // Não interrompe o fluxo, pois a conta de autenticação foi criada
         }
 
-        await sendEmailVerification(user);
-        showToast("Conta criada! Verifique seu email.", "info");
+        showToast("Conta criada com sucesso!", "success");
         window.location.hash = "/dashboard";
       } catch (error) {
         console.error(error);
@@ -158,6 +189,66 @@ export function Register() {
         showToast(msg, "error");
       }
     });
+
+    // Lógica de Cadastro com Google (Movido para dentro do renderForm para garantir que o elemento exista)
+    const btnGoogle = element.querySelector("#btn-google-reg");
+    if (btnGoogle) {
+      btnGoogle.onclick = async () => {
+        const isPwa =
+          window.matchMedia("(display-mode: standalone)").matches ||
+          window.navigator.standalone ||
+          /Mobi|Android/i.test(navigator.userAgent);
+
+        if (isPwa) {
+          try {
+            await signInWithRedirect(auth, googleProvider);
+            return;
+          } catch (error) {
+            console.error(error);
+            showToast("Erro ao iniciar cadastro com Google.", "error");
+          }
+        }
+
+        try {
+          const result = await signInWithPopup(auth, googleProvider);
+          await handleGoogleRegisterSuccess(result.user);
+        } catch (error) {
+          console.error(error);
+          showToast("Erro ao cadastrar com Google.", "error");
+        }
+      };
+    }
+  };
+
+  // Processar retorno do Redirect (PWA)
+  getRedirectResult(auth)
+    .then((result) => {
+      if (result) handleGoogleRegisterSuccess(result.user);
+    })
+    .catch((error) => console.error(error));
+
+  const handleGoogleRegisterSuccess = async (user) => {
+    try {
+      // Verificar se o usuário já existe no banco, se não, cria
+      const userDocRef = doc(db, "users", user.uid);
+      const userDoc = await getDoc(userDocRef);
+
+      if (!userDoc.exists()) {
+        await setDoc(userDocRef, {
+          email: user.email,
+          displayName: user.displayName,
+          photoURL: user.photoURL,
+          createdAt: new Date().toISOString(),
+          isPremium: false,
+        });
+      }
+
+      showToast("Cadastro realizado com sucesso!", "success");
+      window.location.hash = "/dashboard";
+    } catch (error) {
+      console.error(error);
+      showToast("Erro ao finalizar cadastro.", "error");
+    }
   };
 
   renderForm();

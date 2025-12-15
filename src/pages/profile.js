@@ -246,6 +246,18 @@ export function Profile() {
         // Restore content structure
         profileCard.innerHTML = originalContent;
 
+        // Atualizar imagem vinda do Firestore (pois o Auth não suporta Base64 longo)
+        if (data.photoURL) {
+          const imgWrapper = element.querySelector("#profile-img-wrapper");
+          if (imgWrapper) {
+            imgWrapper.innerHTML = `
+              <img src="${data.photoURL}" class="w-full h-full object-cover">
+              <div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <i class="fas fa-camera text-white text-xl"></i>
+              </div>`;
+          }
+        }
+
         // Re-select elements after innerHTML restore
         const planBadge = element.querySelector("#plan-badge");
         const profileIcon = element.querySelector("#profile-icon");
@@ -386,8 +398,8 @@ export function Profile() {
           return;
         }
 
-        // Atualiza Auth e Firestore
-        await updateProfile(user, { photoURL });
+        // Atualiza apenas o Firestore (Auth tem limite de caracteres para photoURL)
+        // await updateProfile(user, { photoURL }); // Removido para evitar erro "Photo URL too long"
         await updateDoc(doc(db, "users", user.uid), { photoURL });
 
         // Atualiza UI imediatamente
@@ -561,9 +573,9 @@ function compressImage(file) {
         const canvas = document.createElement("canvas");
         const ctx = canvas.getContext("2d");
 
-        // Redimensiona para no máximo 300x300 (suficiente para avatar)
-        const MAX_WIDTH = 300;
-        const MAX_HEIGHT = 300;
+        // Redimensiona para no máximo 200x200 (Compressão agressiva para Firestore)
+        const MAX_WIDTH = 200;
+        const MAX_HEIGHT = 200;
         let width = img.width;
         let height = img.height;
 
@@ -583,8 +595,8 @@ function compressImage(file) {
         canvas.height = height;
         ctx.drawImage(img, 0, 0, width, height);
 
-        // Comprime para JPEG com qualidade 0.7
-        resolve(canvas.toDataURL("image/jpeg", 0.7));
+        // Comprime para JPEG com qualidade 0.5
+        resolve(canvas.toDataURL("image/jpeg", 0.5));
       };
       img.onerror = (err) => reject(err);
     };

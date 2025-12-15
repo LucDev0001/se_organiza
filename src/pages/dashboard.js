@@ -11,7 +11,6 @@ import {
   query,
   where,
   getDocs,
-  sendEmailVerification,
 } from "../services/firebase.js";
 import {
   getTransactions,
@@ -28,6 +27,36 @@ import { requestNotificationPermission } from "../services/notifications.service
 
 export function Dashboard() {
   const user = auth.currentUser;
+
+  // Verificação de segurança: Bloquear acesso se suspenso
+  if (user) {
+    getDoc(doc(db, "users", user.uid)).then((snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+
+        // 1. Verificar Suspensão
+        if (data.isSuspended) {
+          signOut(auth).then(() => {
+            window.location.hash = "/login";
+            showToast("Sua conta foi suspensa.", "error");
+          });
+          return;
+        }
+
+        // 2. Injetar Botão de Admin se tiver permissão
+        if (data.role === "admin") {
+          const adminBtn = document.createElement("button");
+          adminBtn.className =
+            "min-w-[80px] flex flex-col items-center gap-2 snap-center group";
+          adminBtn.onclick = () => (window.location.hash = "/admin");
+          adminBtn.innerHTML = `<div class="w-14 h-14 rounded-2xl bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-400 group-hover:scale-110 group-hover:shadow-md transition-all duration-300"><i class="fas fa-shield-alt text-xl"></i></div><span class="text-xs font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">Admin</span>`;
+          const grid = element.querySelector("#quick-actions-grid");
+          if (grid) grid.appendChild(adminBtn);
+        }
+      }
+    });
+  }
+
   // Fallback seguro para nome de exibição
   const displayName = user && (user.displayName || user.email.split("@")[0]);
   let currentTransactions = []; // Estado local para filtro
@@ -69,23 +98,6 @@ export function Dashboard() {
         </button>
       </div>
     </header>
-
-    <!-- Verification Banner -->
-    ${
-      !user.emailVerified
-        ? `
-    <div id="verify-banner" class="bg-yellow-50 dark:bg-yellow-900/20 border-b border-yellow-100 dark:border-yellow-800/50 px-6 py-3 flex items-center justify-between animate-fade-in">
-        <div class="flex items-center gap-3">
-            <i class="fas fa-exclamation-triangle text-yellow-600 dark:text-yellow-500"></i>
-            <p class="text-sm text-yellow-800 dark:text-yellow-200">
-                Seu email ainda não foi verificado. 
-                <button id="resend-verify" class="underline font-bold hover:text-yellow-900 dark:hover:text-yellow-100 ml-1">Reenviar email</button>
-            </p>
-        </div>
-        <button id="close-verify-banner" class="text-yellow-600 hover:text-yellow-800 dark:text-yellow-400 dark:hover:text-yellow-200"><i class="fas fa-times"></i></button>
-    </div>`
-        : ""
-    }
 
     <!-- Main Content -->
     <main class="flex-1 p-6 max-w-5xl mx-auto w-full overflow-y-auto">
@@ -396,15 +408,6 @@ export function Dashboard() {
     { icon: "fa-video", label: "Vídeos", color: "red", link: "/videos" },
     { icon: "fa-info-circle", label: "Sobre", color: "purple", link: "/about" },
   ];
-
-  if (user.email === "lucianosantosseverino@gmail.com") {
-    actions.push({
-      icon: "fa-shield-alt",
-      label: "Admin",
-      color: "gray",
-      link: "/admin",
-    });
-  }
 
   actions.forEach((action) => {
     const btn = document.createElement("button");
@@ -1619,25 +1622,6 @@ export function Dashboard() {
       console.error(e);
     }
   }, 1000);
-
-  // Verification Banner Logic
-  const verifyBanner = element.querySelector("#verify-banner");
-  if (verifyBanner) {
-    verifyBanner.querySelector("#close-verify-banner").onclick = () => {
-      verifyBanner.remove();
-    };
-    verifyBanner.querySelector("#resend-verify").onclick = async () => {
-      try {
-        await sendEmailVerification(user);
-        showToast("Email de verificação reenviado!", "success");
-      } catch (error) {
-        showToast(
-          "Erro ao reenviar email. Tente novamente mais tarde.",
-          "error"
-        );
-      }
-    };
-  }
 
   return element;
 }
