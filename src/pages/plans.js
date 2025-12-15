@@ -124,7 +124,7 @@ export function Plans() {
   // Lógica do Botão de Assinatura
   element.querySelector("#btn-subscribe").onclick = () => {
     const message = `Olá! Gostaria de assinar o Plano Premium do Se Organiza.\nMeu email de cadastro é: ${email}\n\nAguardo a chave Pix!`;
-    const whatsappUrl = `https://wa.me/5511999999999?text=${encodeURIComponent(
+    const whatsappUrl = `https://wa.me/5521983856779?text=${encodeURIComponent(
       message
     )}`;
     window.open(whatsappUrl, "_blank");
