@@ -1,5 +1,7 @@
 import { auth, onAuthStateChanged } from "./services/firebase.js";
 import { Login } from "./pages/login.js";
+import { Register } from "./pages/register.js";
+import { ForgotPassword } from "./pages/forgot-password.js";
 import { Dashboard } from "./pages/dashboard.js";
 import { Tasks } from "./pages/tasks.js";
 import { Finance } from "./pages/finance.js";
@@ -12,7 +14,9 @@ import { Notifications, updateGlobalBadge } from "./pages/notifications.js";
 import { Landing } from "./pages/landing.js";
 import { Help } from "./pages/help.js";
 import { Videos } from "./pages/videos.js";
+import { NotFound } from "./pages/not-found.js";
 import { showToast } from "./utils/ui.js";
+import { initNotifications } from "./services/notifications.service.js";
 
 // Estado Global Simples
 const state = {
@@ -27,6 +31,8 @@ const ADMIN_EMAIL = "lucianosantosseverino@gmail.com";
 const routes = {
   "/": "home", // Página inicial
   "/login": "login",
+  "/register": "register",
+  "/forgot-password": "forgot-password",
   "/dashboard": "dashboard",
   "/finance": "finance",
   "/tasks": "tasks",
@@ -51,7 +57,9 @@ async function router() {
     hash !== "/login" &&
     hash !== "/" &&
     hash !== "/terms" &&
-    hash !== "/privacy"
+    hash !== "/privacy" &&
+    hash !== "/register" &&
+    hash !== "/forgot-password"
   ) {
     window.location.hash = "/"; // Redireciona para Landing se tentar acessar rota protegida sem logar
     return;
@@ -59,9 +67,7 @@ async function router() {
 
   // Verificação de Email (Bloqueio)
   if (state.user && !state.user.emailVerified && hash !== "/login") {
-    alert(
-      "Seu email ainda não foi verificado. Verifique sua caixa de entrada."
-    );
+    showToast("Verifique seu email para acessar o sistema.", "info");
     await auth.signOut();
     return;
   }
@@ -88,6 +94,10 @@ async function router() {
     app.appendChild(Landing());
   } else if (hash === "/login") {
     app.appendChild(Login());
+  } else if (hash === "/register") {
+    app.appendChild(Register());
+  } else if (hash === "/forgot-password") {
+    app.appendChild(ForgotPassword());
   } else if (hash === "/dashboard") {
     app.appendChild(Dashboard());
   } else if (hash === "/tasks") {
@@ -113,19 +123,7 @@ async function router() {
   } else if (hash === "/videos") {
     app.appendChild(Videos());
   } else {
-    app.innerHTML = `
-        <div class="p-8 text-center">
-            <h1 class="text-2xl font-bold mb-4 text-indigo-600">Página: ${hash}</h1>
-            <p class="text-gray-500">Usuário: ${
-              state.user ? state.user.email : "Não logado"
-            }</p>
-            ${
-              state.isAdmin
-                ? '<span class="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded">ADMIN</span>'
-                : ""
-            }
-        </div>
-    `;
+    app.appendChild(NotFound());
   }
 }
 
@@ -135,6 +133,7 @@ window.addEventListener("hashchange", router);
 onAuthStateChanged(auth, (user) => {
   state.user = user;
   state.isAdmin = user && user.email === ADMIN_EMAIL;
+  if (user) initNotifications(user); // Inicializa verificação de notificações
   router();
 });
 

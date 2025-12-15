@@ -10,6 +10,7 @@ import {
   sendPasswordResetEmail,
   sendEmailVerification,
   deleteUser,
+  updateProfile,
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import {
   getFirestore,
@@ -26,9 +27,16 @@ import {
   deleteDoc,
   setDoc,
   arrayUnion,
-  enableIndexedDbPersistence,
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js";
+import {
+  getMessaging,
+  getToken,
+  onMessage,
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAY9kqryV_1oUbR5N9tN2x-Kt5jY_ecQSE",
@@ -41,18 +49,16 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const db = getFirestore(app);
 const analytics = getAnalytics(app);
 
-// Habilitar Persistência Offline
-enableIndexedDbPersistence(db).catch((err) => {
-  if (err.code == "failed-precondition") {
-    console.log("Persistência falhou: Múltiplas abas abertas.");
-  } else if (err.code == "unimplemented") {
-    console.log("Navegador não suporta persistência.");
-  }
+// Inicializar Firestore com Persistência Moderna (substitui enableIndexedDbPersistence)
+const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({
+    tabManager: persistentMultipleTabManager(),
+  }),
 });
 const googleProvider = new GoogleAuthProvider();
+const messaging = getMessaging(app);
 
 export {
   auth,
@@ -62,10 +68,12 @@ export {
   signOut,
   createUserWithEmailAndPassword,
   googleProvider,
+  GoogleAuthProvider,
   signInWithPopup,
   sendPasswordResetEmail,
   sendEmailVerification,
   deleteUser,
+  updateProfile,
   collection,
   addDoc,
   query,
@@ -79,6 +87,11 @@ export {
   deleteDoc,
   setDoc,
   arrayUnion,
-  enableIndexedDbPersistence,
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
   analytics,
+  messaging,
+  getToken,
+  onMessage,
 };

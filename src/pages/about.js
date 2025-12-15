@@ -1,3 +1,5 @@
+import { showToast } from "../utils/ui.js";
+
 export function About() {
   const element = document.createElement("div");
   element.className =
@@ -26,6 +28,9 @@ export function About() {
         </div>
         <h2 class="text-2xl font-bold dark:text-white">Se Organiza</h2>
         <p id="app-version" class="text-gray-500 dark:text-gray-400 mb-6">Versão 1.0.0</p>
+        <button id="check-updates" class="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-3 py-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+            Verificar Atualizações
+        </button>
       </div>
 
       <!-- Seção de Links Úteis -->
@@ -115,6 +120,25 @@ export function About() {
         );
       });
   });
+
+  // Check Updates Logic
+  const updateBtn = element.querySelector("#check-updates");
+  updateBtn.onclick = async () => {
+    updateBtn.innerHTML =
+      '<i class="fas fa-circle-notch fa-spin"></i> Verificando...';
+
+    // Simulação de check de SW ou fetch de manifesto
+    setTimeout(() => {
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.ready.then((registration) => {
+          registration.update();
+        });
+      }
+      updateBtn.innerHTML = '<i class="fas fa-check"></i> Versão mais recente';
+      updateBtn.classList.add("text-green-600", "dark:text-green-400");
+      showToast("Seu app está atualizado!");
+    }, 1500);
+  };
 
   return element;
 }

@@ -5,6 +5,12 @@ import {
   doc,
   getDoc,
   updateDoc,
+  collection,
+  addDoc,
+  deleteDoc,
+  query,
+  where,
+  getDocs,
 } from "../services/firebase.js";
 import {
   getTransactions,
@@ -17,6 +23,7 @@ import {
 import { getTasks } from "../services/tasks.service.js";
 import { getNotes } from "../services/notes.service.js";
 import { showToast, showConfirm } from "../utils/ui.js";
+import { requestNotificationPermission } from "../services/notifications.service.js";
 
 export function Dashboard() {
   const user = auth.currentUser;
@@ -24,6 +31,9 @@ export function Dashboard() {
   const displayName = user && (user.displayName || user.email.split("@")[0]);
   let currentTransactions = []; // Estado local para filtro
   let currentFilterType = "all"; // 'all', 'income', 'expense'
+  let currentDate = new Date(); // Estado para navegação de data
+  let showValues = localStorage.getItem("showValues") !== "false"; // Persistência do modo privacidade
+  let isZenMode = false; // Estado do Modo Zen
 
   const element = document.createElement("div");
   element.className =
@@ -37,13 +47,19 @@ export function Dashboard() {
         <h1 class="text-xl font-bold text-gray-800 dark:text-white">Se Organiza</h1>
       </div>
       <div class="flex items-center gap-4">
+        <button id="voice-cmd-btn" class="text-gray-500 hover:text-indigo-600 transition-colors hidden sm:block" title="Comando de Voz">
+            <i class="fas fa-microphone text-xl"></i>
+        </button>
+        <button id="zen-mode-btn" class="text-gray-500 hover:text-emerald-500 transition-colors" title="Modo Zen (Foco)">
+            <i class="fas fa-spa text-xl"></i>
+        </button>
         <button id="global-search-btn" class="text-gray-500 hover:text-indigo-600 transition-colors" title="Busca Global">
             <i class="fas fa-search text-xl"></i>
         </button>
         <button onclick="window.toggleTheme()" class="text-gray-500 hover:text-yellow-500 transition-colors">
             <i class="fas fa-adjust text-xl"></i>
         </button>
-        <button onclick="window.location.hash='/notifications'" class="text-gray-500 hover:text-indigo-600 transition-colors relative">
+        <button id="btn-notifications" class="text-gray-500 hover:text-indigo-600 transition-colors relative" title="Ativar Notificações">
             <i class="fas fa-bell text-xl"></i>
             <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center">3</span>
         </button>
@@ -55,131 +71,109 @@ export function Dashboard() {
 
     <!-- Main Content -->
     <main class="flex-1 p-6 max-w-5xl mx-auto w-full overflow-y-auto">
-      <div class="mb-8">
-        <h2 class="text-2xl font-bold">Olá, <span class="text-indigo-600">${displayName}</span></h2>
-        <p class="text-gray-500 dark:text-gray-400">Aqui está o resumo das suas finanças este mês.</p>
-      </div>
-
-      <!-- Quick Actions (Moved Up) -->
-      <h3 class="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-200">Acesso Rápido</h3>
-      <div id="quick-actions-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8 transition-all duration-300">
-        <button onclick="window.location.hash='/finance'" class="p-4 bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md transition flex flex-col items-center gap-3 text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 group">
-          <div class="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center group-hover:bg-indigo-50 dark:group-hover:bg-indigo-900/30 transition-colors">
-             <i class="fas fa-plus text-lg"></i>
-          </div>
-          <span class="text-sm font-medium">Nova Transação</span>
-        </button>
-        <button onclick="window.location.hash='/tasks'" class="p-4 bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md transition flex flex-col items-center gap-3 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 group">
-          <div class="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center group-hover:bg-blue-50 dark:group-hover:bg-blue-900/30 transition-colors">
-             <i class="fas fa-tasks text-lg"></i>
-          </div>
-          <span class="text-sm font-medium">Tarefas</span>
-        </button>
-        <button onclick="window.location.hash='/notes'" class="p-4 bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md transition flex flex-col items-center gap-3 text-gray-600 dark:text-gray-300 hover:text-yellow-500 dark:hover:text-yellow-400 group">
-          <div class="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center group-hover:bg-yellow-50 dark:group-hover:bg-yellow-900/30 transition-colors">
-             <i class="fas fa-sticky-note text-lg"></i>
-          </div>
-          <span class="text-sm font-medium">Notas</span>
-        </button>
-        <button onclick="window.location.hash='/profile'" class="p-4 bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md transition flex flex-col items-center gap-3 text-gray-600 dark:text-gray-300 hover:text-green-500 dark:hover:text-green-400 group">
-          <div class="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center group-hover:bg-green-50 dark:group-hover:bg-green-900/30 transition-colors">
-             <i class="fas fa-user text-lg"></i>
-          </div>
-          <span class="text-sm font-medium">Perfil</span>
-        </button>
-        <button onclick="window.location.hash='/videos'" class="p-4 bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md transition flex flex-col items-center gap-3 text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 group">
-          <div class="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center group-hover:bg-red-50 dark:group-hover:bg-red-900/30 transition-colors">
-             <i class="fab fa-youtube text-lg"></i>
-          </div>
-          <span class="text-sm font-medium">Vídeos</span>
-        </button>
+      
+      <!-- Top Section: Greeting & Date Picker -->
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Olá, <span class="text-indigo-600 dark:text-indigo-400">${displayName}</span> 👋</h2>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Visão geral das suas finanças.</p>
+        </div>
         
-        <!-- Admin Button (Conditional) -->
-        ${
-          user.email === "lucianosantosseverino@gmail.com"
-            ? `
-        <button onclick="window.location.hash='/admin'" class="p-4 bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md transition flex flex-col items-center gap-3 text-gray-600 dark:text-gray-300 hover:text-red-500 dark:hover:text-red-400 group">
-          <div class="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center group-hover:bg-red-50 dark:group-hover:bg-red-900/30 transition-colors">
-             <i class="fas fa-shield-alt text-lg"></i>
-          </div>
-          <span class="text-sm font-medium">Admin</span>
-        </button>
-        `
-            : ""
-        }
-
-        <button onclick="window.location.hash='/about'" class="p-4 bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md transition flex flex-col items-center gap-3 text-gray-600 dark:text-gray-300 hover:text-purple-500 dark:hover:text-purple-400 group">
-          <div class="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center group-hover:bg-purple-50 dark:group-hover:bg-purple-900/30 transition-colors">
-             <i class="fas fa-info-circle text-lg"></i>
-          </div>
-          <span class="text-sm font-medium">Sobre</span>
-        </button>
-      </div>
-
-      <!-- Financial Summary Cards -->
-      <div id="financial-summary" class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 transition-all duration-300">
-        <!-- Saldo -->
-        <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border-l-4 border-indigo-500 relative overflow-hidden">
-          <div class="flex justify-between items-start relative z-10">
-            <div>
-              <p class="text-sm text-gray-500 dark:text-gray-400 mb-1 font-medium">Saldo Atual</p>
-              <h3 id="balance-amount" class="text-2xl font-bold tracking-tight">...</h3>
-            </div>
-            <div class="p-3 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg text-indigo-600">
-              <i class="fas fa-wallet text-xl"></i>
-            </div>
-          </div>
-        </div>
-
-        <!-- Receitas -->
-        <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border-l-4 border-emerald-500">
-          <div class="flex justify-between items-start">
-            <div>
-              <p class="text-sm text-gray-500 dark:text-gray-400 mb-1 font-medium">Receitas</p>
-              <h3 id="income-amount" class="text-2xl font-bold text-emerald-600 tracking-tight">...</h3>
-            </div>
-            <div class="p-3 bg-emerald-50 dark:bg-emerald-900/30 rounded-lg text-emerald-600">
-              <i class="fas fa-arrow-up text-xl"></i>
-            </div>
-          </div>
-        </div>
-
-        <!-- Despesas -->
-        <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border-l-4 border-red-500">
-          <div class="flex justify-between items-start">
-            <div>
-              <p class="text-sm text-gray-500 dark:text-gray-400 mb-1 font-medium">Despesas</p>
-              <h3 id="expense-amount" class="text-2xl font-bold text-red-600 tracking-tight">...</h3>
-            </div>
-            <div class="p-3 bg-red-50 dark:bg-red-900/30 rounded-lg text-red-600">
-              <i class="fas fa-arrow-down text-xl"></i>
-            </div>
-          </div>
+        <div class="flex items-center bg-white dark:bg-gray-800 rounded-full shadow-sm p-1 border border-gray-100 dark:border-gray-700">
+            <button id="prev-month" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 transition-colors">
+                <i class="fas fa-chevron-left text-xs"></i>
+            </button>
+            <span id="current-date-display" class="px-4 text-sm font-semibold text-gray-700 dark:text-gray-200 min-w-[140px] text-center capitalize">
+                ...
+            </span>
+            <button id="next-month" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 transition-colors">
+                <i class="fas fa-chevron-right text-xs"></i>
+            </button>
         </div>
       </div>
 
-      <!-- Pending Summary -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        <div class="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-xl border border-orange-200 dark:border-orange-800">
-            <div class="flex justify-between items-center">
-                <h4 class="text-orange-800 dark:text-orange-200 font-semibold">Contas a Pagar</h4>
-                <i class="fas fa-file-invoice-dollar text-orange-500"></i>
+      <!-- Hero Section: Balance Card & Summary -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        
+        <!-- Main Balance Card -->
+        <div id="hero-card" class="lg:col-span-2 bg-gradient-to-br from-indigo-600 to-purple-700 rounded-2xl p-6 text-white shadow-lg shadow-indigo-500/30 relative overflow-hidden group transition-all duration-500">
+            <!-- Decorative Circles -->
+            <div class="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 rounded-full bg-white/10 blur-2xl"></div>
+            <div class="absolute bottom-0 left-0 -ml-8 -mb-8 w-24 h-24 rounded-full bg-white/10 blur-xl"></div>
+            
+            <div class="relative z-10">
+                <div class="flex justify-between items-start mb-6">
+                    <div>
+                        <p class="text-indigo-100 text-sm font-medium mb-1 flex items-center gap-2">
+                            Saldo Total
+                            <button id="toggle-privacy" class="hover:text-white transition-colors focus:outline-none">
+                                <i class="fas ${
+                                  showValues ? "fa-eye" : "fa-eye-slash"
+                                }"></i>
+                            </button>
+                        </p>
+                        <h3 id="balance-amount" class="text-4xl font-bold tracking-tight"><div class="h-10 w-48 bg-white/20 rounded animate-pulse mt-1"></div></h3>
+                    </div>
+                    <div class="bg-white/20 backdrop-blur-md p-2 rounded-lg">
+                        <i class="fas fa-wallet text-2xl"></i>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-white/10">
+                    <div>
+                        <p class="text-indigo-100 text-xs mb-1"><i class="fas fa-arrow-up text-emerald-300 mr-1"></i> Receitas</p>
+                        <p id="income-amount" class="text-lg font-semibold"><div class="h-6 w-24 bg-white/20 rounded animate-pulse"></div></p>
+                    </div>
+                    <div>
+                        <p class="text-indigo-100 text-xs mb-1"><i class="fas fa-arrow-down text-red-300 mr-1"></i> Despesas</p>
+                        <p id="expense-amount" class="text-lg font-semibold"><div class="h-6 w-24 bg-white/20 rounded animate-pulse"></div></p>
+                    </div>
+                </div>
             </div>
-            <p id="pending-expense" class="text-2xl font-bold text-orange-700 dark:text-orange-300 mt-2">R$ 0,00</p>
-            <p class="text-xs text-orange-600 dark:text-orange-400 mt-1">Total pendente este mês</p>
         </div>
-        <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-200 dark:border-blue-800">
-            <div class="flex justify-between items-center">
-                <h4 class="text-blue-800 dark:text-blue-200 font-semibold">Receitas a Receber</h4>
-                <i class="fas fa-hand-holding-usd text-blue-500"></i>
+
+        <!-- Pending Alerts & Goal -->
+        <div id="pending-goal-section" class="space-y-4 flex flex-col transition-all duration-300">
+            <!-- Pending Alerts -->
+            <div class="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-gray-700 flex-1 flex flex-col justify-center">
+                <h4 class="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">Pendências do Mês</h4>
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-gray-600 dark:text-gray-300 flex items-center gap-2"><div class="w-2 h-2 rounded-full bg-orange-500"></div> A Pagar</span>
+                        <span id="pending-expense" class="font-bold text-orange-600 dark:text-orange-400">R$ 0,00</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-gray-600 dark:text-gray-300 flex items-center gap-2"><div class="w-2 h-2 rounded-full bg-blue-500"></div> A Receber</span>
+                        <span id="pending-income" class="font-bold text-blue-600 dark:text-blue-400">R$ 0,00</span>
+                    </div>
+                </div>
             </div>
-            <p id="pending-income" class="text-2xl font-bold text-blue-700 dark:text-blue-300 mt-2">R$ 0,00</p>
-            <p class="text-xs text-blue-600 dark:text-blue-400 mt-1">Total previsto este mês</p>
+
+            <!-- Mini Goal -->
+            <div class="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-gray-700 relative overflow-hidden">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-sm font-bold text-gray-700 dark:text-gray-200">Meta Mensal</span>
+                    <button id="edit-goal-btn" class="text-xs text-indigo-600 hover:underline">Editar</button>
+                </div>
+                <div class="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2 mb-2">
+                    <div id="goal-progress-bar" class="bg-purple-500 h-2 rounded-full transition-all duration-1000" style="width: 0%"></div>
+                </div>
+                <p id="goal-status-text" class="text-xs text-gray-500 text-right">0% atingido</p>
+            </div>
         </div>
+      </div>
+
+      <!-- Quick Actions (Horizontal Scroll on Mobile) -->
+      <div id="quick-actions-section" class="mb-8 transition-all duration-300">
+          <h3 class="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3 px-1">Acesso Rápido</h3>
+          <div id="quick-actions-grid" class="flex overflow-x-auto pb-4 gap-4 snap-x hide-scrollbar">
+            <!-- Buttons injected via JS helper to avoid repetition -->
+          </div>
       </div>
 
       <!-- Smart Insights (Innovative Feature) -->
-      <div class="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl shadow-lg p-6 mb-8 text-white">
+      <div id="insights-section" class="bg-gradient-to-r from-gray-900 to-gray-800 dark:from-gray-800 dark:to-gray-700 rounded-2xl shadow-lg p-5 mb-8 text-white relative overflow-hidden transition-all duration-300">
+        <div class="absolute right-0 top-0 h-full w-1/3 bg-white/5 skew-x-12"></div>
         <div class="flex items-center gap-2 mb-4">
             <i class="fas fa-lightbulb text-yellow-300 text-xl"></i>
             <h3 class="text-lg font-bold">Insights Inteligentes</h3>
@@ -189,51 +183,89 @@ export function Dashboard() {
         </div>
       </div>
 
-      <!-- Financial Goal -->
-      <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm mb-8 border-l-4 border-purple-500">
-        <div class="flex justify-between items-end mb-3">
-            <div>
-                <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200">Meta de Saldo</h3>
-                <p class="text-sm text-gray-500 dark:text-gray-400">Acompanhe seu progresso financeiro</p>
-            </div>
-            <button id="edit-goal-btn" class="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 text-sm font-medium bg-indigo-50 dark:bg-indigo-900/30 px-3 py-1 rounded-lg transition-colors">Definir Meta</button>
-        </div>
-        
-        <div class="w-full bg-gray-200 rounded-full h-4 dark:bg-gray-700 overflow-hidden relative">
-            <div id="goal-progress-bar" class="bg-purple-600 h-4 rounded-full transition-all duration-1000 ease-out relative" style="width: 0%"></div>
-        </div>
-        <div class="flex justify-between text-sm mt-2 font-medium text-gray-600 dark:text-gray-300">
-            <span id="goal-current">R$ 0,00</span>
-            <span id="goal-target">Meta: R$ 0,00</span>
-        </div>
+      <!-- Budget by Category -->
+      <div id="budget-section" class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 mb-8 transition-all duration-300">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-bold text-gray-800 dark:text-white">Orçamento por Categoria</h3>
+            <span class="text-xs text-gray-500 dark:text-gray-400">Top gastos do mês</span>
+          </div>
+          <div id="budget-container" class="space-y-5">
+              <p class="text-sm opacity-80">Carregando...</p>
+          </div>
       </div>
 
-      <!-- Charts Section -->
-      <div id="charts-section" class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 transition-all duration-300">
-        <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm">
-          <h3 class="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-200">Despesas por Categoria</h3>
-          <div class="relative h-64 w-full flex items-center justify-center">
-            <canvas id="expenses-chart"></canvas>
+      <!-- Savings Goals Section -->
+      <div id="savings-goals-section" class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 mb-8 transition-all duration-300">
+          <div class="flex justify-between items-center mb-4">
+              <h3 class="text-lg font-bold text-gray-800 dark:text-white">Metas de Economia</h3>
+              <button id="add-goal-btn" class="text-sm text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium bg-indigo-50 dark:bg-indigo-900/30 px-3 py-1 rounded-lg transition-colors flex items-center">
+                  <i class="fas fa-plus mr-1"></i> Nova Meta
+              </button>
+          </div>
+          <div id="goals-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <p class="text-sm opacity-80 col-span-full">Carregando metas...</p>
+          </div>
+      </div>
+
+      <!-- Interactive Calendar -->
+      <div id="calendar-section" class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 mb-8 transition-all duration-300">
+          <div class="flex justify-between items-center mb-6">
+              <h3 class="text-lg font-bold text-gray-800 dark:text-white">Calendário de Atividades</h3>
+              <div class="flex gap-3 text-xs">
+                  <span class="flex items-center gap-1"><div class="w-2 h-2 rounded-full bg-emerald-500"></div> Receita</span>
+                  <span class="flex items-center gap-1"><div class="w-2 h-2 rounded-full bg-red-500"></div> Despesa</span>
+                  <span class="flex items-center gap-1"><div class="w-2 h-2 rounded-full bg-blue-500"></div> Tarefa</span>
+              </div>
+          </div>
+          
+          <!-- Weekday Headers -->
+          <div class="grid grid-cols-7 gap-2 mb-2 text-center">
+              <div class="text-xs font-bold text-gray-400">Dom</div>
+              <div class="text-xs font-bold text-gray-400">Seg</div>
+              <div class="text-xs font-bold text-gray-400">Ter</div>
+              <div class="text-xs font-bold text-gray-400">Qua</div>
+              <div class="text-xs font-bold text-gray-400">Qui</div>
+              <div class="text-xs font-bold text-gray-400">Sex</div>
+              <div class="text-xs font-bold text-gray-400">Sáb</div>
+          </div>
+          
+          <!-- Calendar Grid -->
+          <div id="calendar-grid" class="grid grid-cols-7 gap-2">
+              <!-- Injected via JS -->
+          </div>
+      </div>
+
+      <!-- Charts & Transactions Grid -->
+      <div id="charts-section" class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        
+        <!-- Charts Tab -->
+        <div id="charts-container" class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 transition-all duration-300">
+          <div class="flex justify-between items-center mb-6">
+              <h3 class="text-lg font-bold text-gray-800 dark:text-white">Análise de Gastos</h3>
+              <div class="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+                  <button id="chart-tab-expense" class="px-3 py-1 text-xs font-bold rounded-md bg-white dark:bg-gray-600 shadow-sm text-gray-800 dark:text-white transition-all">Despesas</button>
+                  <button id="chart-tab-income" class="px-3 py-1 text-xs font-bold rounded-md text-gray-500 dark:text-gray-400 hover:text-gray-700 transition-all">Receitas</button>
+              </div>
+          </div>
+          
+          <div class="relative h-64 w-full flex items-center justify-center" id="chart-container-expense">
+             <canvas id="expenses-chart"></canvas>
+          </div>
+          <div class="relative h-64 w-full flex items-center justify-center hidden" id="chart-container-income">
+             <canvas id="incomes-chart"></canvas>
           </div>
         </div>
 
-        <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm">
-          <h3 class="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-200">Receitas por Categoria</h3>
-          <div class="relative h-64 w-full flex items-center justify-center">
-            <canvas id="incomes-chart"></canvas>
-          </div>
-        </div>
-        
         <!-- Recent Transactions List with Actions -->
-        <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm flex flex-col">
+        <div id="transactions-section" class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col h-[400px] transition-all duration-300">
             <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200">Transações Recentes</h3>
+                <h3 class="text-lg font-bold text-gray-800 dark:text-white">Transações</h3>
                 <div class="relative">
                     <input type="text" id="trans-search" placeholder="Buscar..." class="pl-8 pr-3 py-1 text-sm rounded-lg bg-gray-100 dark:bg-gray-700 border-none focus:ring-2 focus:ring-indigo-500 outline-none w-32 focus:w-48 transition-all text-gray-700 dark:text-gray-200 placeholder-gray-400">
                     <i class="fas fa-search absolute left-2.5 top-2 text-gray-400 text-xs"></i>
                 </div>
             </div>
-            <div id="dashboard-transactions" class="flex-1 overflow-y-auto space-y-3 max-h-64 custom-scrollbar">
+            <div id="dashboard-transactions" class="flex-1 overflow-y-auto space-y-3 custom-scrollbar pr-2">
                 <!-- Injected via JS -->
             </div>
         </div>
@@ -282,6 +314,39 @@ export function Dashboard() {
         </div>
       </div>
 
+      <!-- Savings Goal Modal -->
+      <div id="savings-goal-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 backdrop-blur-sm p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm p-6">
+            <h3 class="text-lg font-bold mb-4 text-gray-800 dark:text-white" id="savings-goal-modal-title">Nova Meta</h3>
+            <form id="savings-goal-form" class="space-y-4">
+                <input type="hidden" name="goalId">
+                <div>
+                    <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Nome da Meta</label>
+                    <input type="text" name="title" required class="w-full rounded-lg border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 p-2 outline-none focus:ring-2 focus:ring-indigo-500 dark:text-white" placeholder="Ex: Viagem, Carro Novo">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Valor Alvo (R$)</label>
+                    <input type="number" step="0.01" name="targetAmount" required class="w-full rounded-lg border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 p-2 outline-none focus:ring-2 focus:ring-indigo-500 dark:text-white">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Valor Atual (R$)</label>
+                    <input type="number" step="0.01" name="currentAmount" value="0" required class="w-full rounded-lg border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 p-2 outline-none focus:ring-2 focus:ring-indigo-500 dark:text-white">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Ícone</label>
+                    <div class="flex gap-3 overflow-x-auto pb-2 custom-scrollbar" id="goal-icons-select">
+                        <!-- Icons generated by JS -->
+                    </div>
+                    <input type="hidden" name="icon" value="fa-piggy-bank">
+                </div>
+                <div class="flex justify-end gap-2 mt-4">
+                    <button type="button" id="close-savings-goal-modal" class="px-3 py-1.5 text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 rounded">Cancelar</button>
+                    <button type="submit" class="px-3 py-1.5 bg-indigo-600 text-white rounded hover:bg-indigo-700">Salvar</button>
+                </div>
+            </form>
+        </div>
+      </div>
+
       <!-- Global Search Modal -->
       <div id="global-search-modal" class="fixed inset-0 bg-black/50 hidden items-start justify-center z-[60] backdrop-blur-sm p-4 pt-20">
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-2xl flex flex-col max-h-[80vh]">
@@ -297,6 +362,194 @@ export function Dashboard() {
       </div>
     </main>
   `;
+
+  // --- Helper: Render Quick Actions ---
+  const quickActionsContainer = element.querySelector("#quick-actions-grid");
+  const actions = [
+    {
+      icon: "fa-plus",
+      label: "Nova Transação",
+      color: "indigo",
+      link: "/finance",
+    },
+    { icon: "fa-tasks", label: "Tarefas", color: "blue", link: "/tasks" },
+    { icon: "fa-sticky-note", label: "Notas", color: "yellow", link: "/notes" },
+    { icon: "fa-user", label: "Perfil", color: "green", link: "/profile" },
+    { icon: "fa-video", label: "Vídeos", color: "red", link: "/videos" },
+    { icon: "fa-info-circle", label: "Sobre", color: "purple", link: "/about" },
+  ];
+
+  if (user.email === "lucianosantosseverino@gmail.com") {
+    actions.push({
+      icon: "fa-shield-alt",
+      label: "Admin",
+      color: "gray",
+      link: "/admin",
+    });
+  }
+
+  actions.forEach((action) => {
+    const btn = document.createElement("button");
+    btn.className =
+      "min-w-[80px] flex flex-col items-center gap-2 snap-center group";
+    btn.onclick = () => (window.location.hash = action.link);
+    btn.innerHTML = `
+        <div class="w-14 h-14 rounded-2xl bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-center text-${action.color}-500 group-hover:scale-110 group-hover:shadow-md transition-all duration-300">
+            <i class="fas ${action.icon} text-xl"></i>
+        </div>
+        <span class="text-xs font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">${action.label}</span>
+      `;
+    quickActionsContainer.appendChild(btn);
+  });
+
+  // --- Date Navigation Logic ---
+  const dateDisplay = element.querySelector("#current-date-display");
+  const updateDateDisplay = () => {
+    dateDisplay.textContent = currentDate.toLocaleString("pt-BR", {
+      month: "long",
+      year: "numeric",
+    });
+    loadFinancialData();
+  };
+
+  element.querySelector("#prev-month").onclick = () => {
+    currentDate.setMonth(currentDate.getMonth() - 1);
+    updateDateDisplay();
+  };
+  element.querySelector("#next-month").onclick = () => {
+    currentDate.setMonth(currentDate.getMonth() + 1);
+    updateDateDisplay();
+  };
+
+  // Inicializa apenas o texto da data para evitar erro de referência (loadFinancialData ainda não definido)
+  dateDisplay.textContent = currentDate.toLocaleString("pt-BR", {
+    month: "long",
+    year: "numeric",
+  });
+
+  // --- Privacy Toggle Logic ---
+  const togglePrivacyBtn = element.querySelector("#toggle-privacy");
+  togglePrivacyBtn.onclick = () => {
+    showValues = !showValues;
+    localStorage.setItem("showValues", showValues);
+    togglePrivacyBtn.innerHTML = `<i class="fas ${
+      showValues ? "fa-eye" : "fa-eye-slash"
+    }"></i>`;
+    loadFinancialData(); // Re-render values
+  };
+
+  // --- Chart Tabs Logic ---
+  const tabExpense = element.querySelector("#chart-tab-expense");
+  const tabIncome = element.querySelector("#chart-tab-income");
+  const containerExpense = element.querySelector("#chart-container-expense");
+  const containerIncome = element.querySelector("#chart-container-income");
+
+  const switchChartTab = (type) => {
+    if (type === "expense") {
+      tabExpense.className =
+        "px-3 py-1 text-xs font-bold rounded-md bg-white dark:bg-gray-600 shadow-sm text-gray-800 dark:text-white transition-all";
+      tabIncome.className =
+        "px-3 py-1 text-xs font-bold rounded-md text-gray-500 dark:text-gray-400 hover:text-gray-700 transition-all";
+      containerExpense.classList.remove("hidden");
+      containerIncome.classList.add("hidden");
+    } else {
+      tabIncome.className =
+        "px-3 py-1 text-xs font-bold rounded-md bg-white dark:bg-gray-600 shadow-sm text-gray-800 dark:text-white transition-all";
+      tabExpense.className =
+        "px-3 py-1 text-xs font-bold rounded-md text-gray-500 dark:text-gray-400 hover:text-gray-700 transition-all";
+      containerIncome.classList.remove("hidden");
+      containerExpense.classList.add("hidden");
+    }
+  };
+
+  tabExpense.onclick = () => switchChartTab("expense");
+  tabIncome.onclick = () => switchChartTab("income");
+
+  // --- Zen Mode Logic ---
+  const zenBtn = element.querySelector("#zen-mode-btn");
+  zenBtn.onclick = () => {
+    isZenMode = !isZenMode;
+
+    // Visual Feedback on Button
+    zenBtn.classList.toggle("text-emerald-500", isZenMode);
+    zenBtn.classList.toggle("text-gray-500", !isZenMode);
+
+    // Sections to hide
+    const sections = [
+      "#quick-actions-section",
+      "#insights-section",
+      "#budget-section",
+      "#savings-goals-section",
+      "#calendar-section",
+      "#charts-container",
+      "#transactions-section",
+      "#pending-goal-section",
+    ];
+
+    sections.forEach((id) => {
+      const el = element.querySelector(id);
+      if (el) {
+        if (isZenMode) el.classList.add("hidden");
+        else el.classList.remove("hidden");
+      }
+    });
+
+    // Expand Hero Card
+    const heroCard = element.querySelector("#hero-card");
+    if (heroCard) {
+      if (isZenMode) {
+        heroCard.classList.remove("lg:col-span-2");
+        heroCard.classList.add("col-span-full");
+      } else {
+        heroCard.classList.add("lg:col-span-2");
+        heroCard.classList.remove("col-span-full");
+      }
+    }
+
+    showToast(isZenMode ? "Modo Zen ativado" : "Modo Zen desativado", "info");
+  };
+
+  // --- Voice Command Logic ---
+  const voiceBtn = element.querySelector("#voice-cmd-btn");
+  if ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) {
+    const SpeechRecognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    recognition.lang = "pt-BR";
+    recognition.continuous = false;
+
+    voiceBtn.onclick = () => {
+      voiceBtn.classList.add("text-red-500", "animate-pulse");
+      recognition.start();
+    };
+
+    recognition.onresult = (event) => {
+      voiceBtn.classList.remove("text-red-500", "animate-pulse");
+      const transcript = event.results[0][0].transcript;
+      showToast(`Ouvido: "${transcript}"`);
+
+      // Open Global Search with transcript
+      globalSearchInput.value = transcript;
+      globalSearchBtn.click();
+    };
+
+    recognition.onerror = () => {
+      voiceBtn.classList.remove("text-red-500", "animate-pulse");
+      showToast("Não entendi. Tente novamente.", "error");
+    };
+  } else {
+    voiceBtn.style.display = "none";
+  }
+
+  // --- Notification Button Logic ---
+  const notifBtn = element.querySelector("#btn-notifications");
+  notifBtn.onclick = () => {
+    if (Notification.permission !== "granted") {
+      requestNotificationPermission(user);
+    } else {
+      window.location.hash = "/notifications";
+    }
+  };
 
   // Lógica de Logout
   element.querySelector("#logout-btn").addEventListener("click", async () => {
@@ -469,12 +722,16 @@ export function Dashboard() {
     listEl.innerHTML = "";
 
     if (txs.length === 0) {
-      listEl.innerHTML =
-        '<p class="text-gray-500 text-sm text-center py-4">Nenhuma transação encontrada.</p>';
+      listEl.innerHTML = `<div class="flex flex-col items-center justify-center py-8 text-center">
+            <div class="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-3">
+                <i class="fas fa-receipt text-gray-400 text-2xl"></i>
+            </div>
+            <p class="text-gray-500 dark:text-gray-400 text-sm">Nenhuma transação neste período.</p>
+        </div>`;
       return;
     }
 
-    txs.slice(0, 10).forEach((t) => {
+    txs.slice(0, 20).forEach((t) => {
       const div = document.createElement("div");
       div.className =
         "flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg group";
@@ -510,12 +767,14 @@ export function Dashboard() {
             <div class="flex items-center gap-3">
                 <span class="text-sm font-bold ${
                   t.type === "income" ? "text-emerald-600" : "text-red-600"
-                }">${t.type === "income" ? "+" : "-"} ${Number(
-        t.amount
-      ).toLocaleString("pt-BR", {
-        style: "currency",
-        currency: "BRL",
-      })}</span>
+                }">${t.type === "income" ? "+" : "-"} ${
+        showValues
+          ? Number(t.amount).toLocaleString("pt-BR", {
+              style: "currency",
+              currency: "BRL",
+            })
+          : "•••••"
+      }</span>
                 <div class="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
                     <button class="edit-btn text-blue-500 hover:bg-blue-100 p-1 rounded"><i class="fas fa-pen"></i></button>
                     <button class="del-btn text-red-500 hover:bg-red-100 p-1 rounded"><i class="fas fa-trash"></i></button>
@@ -579,16 +838,18 @@ export function Dashboard() {
   // Carregar dados reais
   const loadFinancialData = async () => {
     try {
-      const now = new Date();
+      // Use currentDate state instead of new Date()
       const transactions = await getTransactions(
-        now.getMonth(),
-        now.getFullYear()
+        currentDate.getMonth(),
+        currentDate.getFullYear()
       );
       currentTransactions = transactions; // Update local state
       const { income, expense, total } = calculateBalance(transactions);
 
       const fmt = (val) =>
-        val.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+        showValues
+          ? val.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+          : "R$ •••••";
 
       element.querySelector("#balance-amount").textContent = fmt(total);
       element.querySelector("#income-amount").textContent = fmt(income);
@@ -611,8 +872,8 @@ export function Dashboard() {
       const goal = await getFinancialGoal();
       const currentBalance = total;
 
-      element.querySelector("#goal-current").textContent = fmt(currentBalance);
-      element.querySelector("#goal-target").textContent = `Meta: ${fmt(goal)}`;
+      // element.querySelector("#goal-current").textContent = fmt(currentBalance);
+      // element.querySelector("#goal-target").textContent = `Meta: ${fmt(goal)}`;
 
       let progress = 0;
       if (goal > 0) {
@@ -621,6 +882,9 @@ export function Dashboard() {
         if (progress > 100) progress = 100;
       }
       element.querySelector("#goal-progress-bar").style.width = `${progress}%`;
+      element.querySelector(
+        "#goal-status-text"
+      ).textContent = `${progress.toFixed(0)}% da meta (${fmt(goal)})`;
 
       // --- Chart Logic ---
       const processChartData = (type) =>
@@ -759,12 +1023,267 @@ export function Dashboard() {
           </div>
       `;
 
+      // 4. Budget/Top Expenses Logic
+      const expensesByCategory = transactions
+        .filter((t) => t.type === "expense")
+        .reduce((acc, t) => {
+          const cat = t.category || "Outros";
+          acc[cat] = (acc[cat] || 0) + Number(t.amount);
+          return acc;
+        }, {});
+
+      const sortedCategories = Object.entries(expensesByCategory)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 4); // Top 4
+
+      const budgetContainer = element.querySelector("#budget-container");
+      budgetContainer.innerHTML = "";
+
+      if (sortedCategories.length === 0) {
+        budgetContainer.innerHTML =
+          '<p class="text-sm text-gray-500 text-center py-2">Nenhuma despesa registrada neste mês.</p>';
+      } else {
+        sortedCategories.forEach(([cat, amount]) => {
+          const percentage = expense > 0 ? (amount / expense) * 100 : 0;
+          let colorClass = "bg-emerald-500";
+          if (percentage > 40) colorClass = "bg-red-500";
+          else if (percentage > 20) colorClass = "bg-orange-500";
+          else if (percentage > 10) colorClass = "bg-yellow-500";
+
+          budgetContainer.innerHTML += `
+                <div>
+                    <div class="flex justify-between items-end mb-1">
+                        <span class="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2"><i class="fas fa-tag text-xs opacity-50"></i> ${cat}</span>
+                        <span class="text-xs font-bold text-gray-900 dark:text-white">${fmt(
+                          amount
+                        )} <span class="text-gray-400 font-normal">(${percentage.toFixed(
+            1
+          )}%)</span></span>
+                    </div>
+                    <div class="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2">
+                        <div class="${colorClass} h-2 rounded-full transition-all duration-1000" style="width: ${percentage}%"></div>
+                    </div>
+                </div>
+              `;
+        });
+      }
+
       // --- List Logic ---
       renderTransactionsList(transactions);
+      renderCalendar();
     } catch (error) {
       console.error("Erro ao carregar finanças:", error);
     }
   };
+
+  // --- Savings Goals Logic ---
+  const goalsContainer = element.querySelector("#goals-container");
+  const savingsGoalModal = element.querySelector("#savings-goal-modal");
+  const savingsGoalForm = element.querySelector("#savings-goal-form");
+  const addGoalBtn = element.querySelector("#add-goal-btn");
+  const closeSavingsGoalModal = element.querySelector(
+    "#close-savings-goal-modal"
+  );
+  const goalIconsContainer = element.querySelector("#goal-icons-select");
+
+  const goalIcons = [
+    "fa-piggy-bank",
+    "fa-plane",
+    "fa-car",
+    "fa-home",
+    "fa-laptop",
+    "fa-graduation-cap",
+    "fa-gamepad",
+    "fa-mobile-alt",
+  ];
+
+  // Render Icons Selection
+  goalIconsContainer.innerHTML = goalIcons
+    .map(
+      (icon) => `
+      <div class="goal-icon-option w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center cursor-pointer hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors ${
+        icon === "fa-piggy-bank" ? "ring-2 ring-indigo-500" : ""
+      }" data-icon="${icon}">
+          <i class="fas ${icon} text-gray-600 dark:text-gray-300"></i>
+      </div>
+  `
+    )
+    .join("");
+
+  goalIconsContainer.querySelectorAll(".goal-icon-option").forEach((opt) => {
+    opt.onclick = () => {
+      goalIconsContainer
+        .querySelectorAll(".goal-icon-option")
+        .forEach((el) => el.classList.remove("ring-2", "ring-indigo-500"));
+      opt.classList.add("ring-2", "ring-indigo-500");
+      savingsGoalForm.icon.value = opt.dataset.icon;
+    };
+  });
+
+  const loadSavingsGoals = async () => {
+    if (!user) return;
+    goalsContainer.innerHTML =
+      '<div class="col-span-full flex justify-center py-4"><i class="fas fa-circle-notch fa-spin text-indigo-500"></i></div>';
+
+    try {
+      const q = query(
+        collection(db, "savings_goals"),
+        where("userId", "==", user.uid)
+      );
+      const querySnapshot = await getDocs(q);
+      const goals = querySnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+
+      goalsContainer.innerHTML = "";
+      if (goals.length === 0) {
+        goalsContainer.innerHTML =
+          '<p class="text-sm text-gray-500 col-span-full text-center py-2">Nenhuma meta definida. Crie uma agora!</p>';
+        return;
+      }
+
+      goals.forEach((goal) => {
+        const progress = Math.min(
+          (goal.currentAmount / goal.targetAmount) * 100,
+          100
+        );
+        const card = document.createElement("div");
+        card.className =
+          "bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl border border-gray-100 dark:border-gray-700 relative group";
+        card.innerHTML = `
+                  <div class="flex justify-between items-start mb-2">
+                      <div class="flex items-center gap-3">
+                          <div class="w-10 h-10 rounded-full bg-white dark:bg-gray-800 flex items-center justify-center shadow-sm text-indigo-600 dark:text-indigo-400">
+                              <i class="fas ${goal.icon}"></i>
+                          </div>
+                          <div>
+                              <h4 class="font-bold text-gray-800 dark:text-white text-sm">${
+                                goal.title
+                              }</h4>
+                              <p class="text-xs text-gray-500 dark:text-gray-400">Meta: ${
+                                showValues
+                                  ? Number(goal.targetAmount).toLocaleString(
+                                      "pt-BR",
+                                      { style: "currency", currency: "BRL" }
+                                    )
+                                  : "R$ •••••"
+                              }</p>
+                          </div>
+                      </div>
+                      <button class="delete-goal-btn text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity" data-id="${
+                        goal.id
+                      }"><i class="fas fa-trash"></i></button>
+                  </div>
+                  <div class="flex justify-between items-end mb-1">
+                      <span class="text-lg font-bold text-gray-900 dark:text-white">${
+                        showValues
+                          ? Number(goal.currentAmount).toLocaleString("pt-BR", {
+                              style: "currency",
+                              currency: "BRL",
+                            })
+                          : "R$ •••••"
+                      }</span>
+                      <span class="text-xs font-medium text-indigo-600 dark:text-indigo-400">${progress.toFixed(
+                        0
+                      )}%</span>
+                  </div>
+                  <div class="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2.5 overflow-hidden">
+                      <div class="bg-indigo-600 h-2.5 rounded-full transition-all duration-1000" style="width: ${progress}%"></div>
+                  </div>
+                  <button class="absolute inset-0 w-full h-full cursor-pointer z-0 edit-goal-trigger" data-id="${
+                    goal.id
+                  }"></button>
+              `;
+
+        // Edit Trigger
+        card.querySelector(".edit-goal-trigger").onclick = () => {
+          savingsGoalForm.goalId.value = goal.id;
+          savingsGoalForm.title.value = goal.title;
+          savingsGoalForm.targetAmount.value = goal.targetAmount;
+          savingsGoalForm.currentAmount.value = goal.currentAmount;
+          savingsGoalForm.icon.value = goal.icon;
+
+          // Select Icon
+          goalIconsContainer
+            .querySelectorAll(".goal-icon-option")
+            .forEach((el) => {
+              el.classList.remove("ring-2", "ring-indigo-500");
+              if (el.dataset.icon === goal.icon)
+                el.classList.add("ring-2", "ring-indigo-500");
+            });
+
+          element.querySelector("#savings-goal-modal-title").textContent =
+            "Editar Meta";
+          savingsGoalModal.classList.remove("hidden");
+          savingsGoalModal.classList.add("flex");
+        };
+
+        // Delete Trigger
+        card.querySelector(".delete-goal-btn").onclick = (e) => {
+          e.stopPropagation();
+          showConfirm("Excluir esta meta?", async () => {
+            await deleteDoc(doc(db, "savings_goals", goal.id));
+            loadSavingsGoals();
+          });
+        };
+
+        goalsContainer.appendChild(card);
+      });
+    } catch (error) {
+      console.error("Error loading goals:", error);
+      if (error.code === "permission-denied") {
+        goalsContainer.innerHTML =
+          '<p class="text-sm text-red-500 col-span-full text-center">Erro de permissão. Verifique o Firestore Rules.</p>';
+      } else {
+        goalsContainer.innerHTML =
+          '<p class="text-sm text-red-500 col-span-full text-center">Erro ao carregar metas.</p>';
+      }
+    }
+  };
+
+  addGoalBtn.onclick = () => {
+    savingsGoalForm.reset();
+    savingsGoalForm.goalId.value = "";
+    element.querySelector("#savings-goal-modal-title").textContent =
+      "Nova Meta";
+    savingsGoalModal.classList.remove("hidden");
+    savingsGoalModal.classList.add("flex");
+  };
+
+  closeSavingsGoalModal.onclick = () => {
+    savingsGoalModal.classList.add("hidden");
+    savingsGoalModal.classList.remove("flex");
+  };
+
+  savingsGoalForm.onsubmit = async (e) => {
+    e.preventDefault();
+    const id = savingsGoalForm.goalId.value;
+    const data = {
+      userId: user.uid,
+      title: savingsGoalForm.title.value,
+      targetAmount: Number(savingsGoalForm.targetAmount.value),
+      currentAmount: Number(savingsGoalForm.currentAmount.value),
+      icon: savingsGoalForm.icon.value,
+    };
+
+    try {
+      if (id) {
+        await updateDoc(doc(db, "savings_goals", id), data);
+      } else {
+        await addDoc(collection(db, "savings_goals"), data);
+      }
+      savingsGoalModal.classList.add("hidden");
+      savingsGoalModal.classList.remove("flex");
+      loadSavingsGoals();
+      showToast("Meta salva com sucesso!");
+    } catch (error) {
+      console.error(error);
+      showToast("Erro ao salvar meta.", "error");
+    }
+  };
+
+  loadSavingsGoals();
 
   // --- Share App Card Logic ---
   const shareCard = document.createElement("div");
@@ -861,17 +1380,17 @@ export function Dashboard() {
       {
         title: "Acesso Rápido ⚡",
         text: "Aqui você encontra atalhos para criar transações, tarefas, notas e acessar vídeos educativos.",
-        target: "#quick-actions-grid",
+        target: "#quick-actions-grid", // Updated target
       },
       {
         title: "Resumo Financeiro 💰",
-        text: "Acompanhe seu saldo atual, receitas e despesas do mês em tempo real nestes cartões.",
-        target: "#financial-summary",
+        text: "Seu saldo total, receitas e despesas estão aqui. Use o ícone de olho para esconder os valores.",
+        target: ".bg-gradient-to-br", // Target the new hero card
       },
       {
         title: "Gráficos e Listas 📊",
         text: "Visualize para onde seu dinheiro está indo e gerencie suas últimas transações aqui.",
-        target: "#charts-section",
+        target: "#charts-section", // Updated target
       },
     ];
 
@@ -967,6 +1486,106 @@ export function Dashboard() {
     overlay.querySelector("#onb-skip").onclick = finishOnboarding;
 
     updateStep();
+  };
+
+  // --- Calendar Logic ---
+  const renderCalendar = async () => {
+    const calendarGrid = element.querySelector("#calendar-grid");
+    if (!calendarGrid) return;
+
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+
+    // Days calculation
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startingDay = firstDay.getDay();
+
+    // Fetch Tasks for this month
+    const allTasks = await getTasks();
+    const monthTasks = allTasks.filter((t) => {
+      if (!t.dueDate) return false;
+      const d = new Date(t.dueDate);
+      return d.getMonth() === month && d.getFullYear() === year;
+    });
+
+    // Prepare Data Map
+    const dayData = {};
+
+    // Map Transactions
+    currentTransactions.forEach((t) => {
+      const parts = t.date.split("-"); // YYYY-MM-DD
+      const day = parseInt(parts[2]);
+      if (!dayData[day]) dayData[day] = { income: 0, expense: 0, tasks: 0 };
+
+      if (t.type === "income") dayData[day].income++;
+      else dayData[day].expense++;
+    });
+
+    // Map Tasks
+    monthTasks.forEach((t) => {
+      const d = new Date(t.dueDate);
+      const day = d.getDate();
+      if (!dayData[day]) dayData[day] = { income: 0, expense: 0, tasks: 0 };
+      dayData[day].tasks++;
+    });
+
+    let html = "";
+
+    // Empty slots
+    for (let i = 0; i < startingDay; i++) {
+      html += `<div class="min-h-[60px] bg-gray-50/50 dark:bg-gray-800/30 rounded-lg"></div>`;
+    }
+
+    // Days
+    for (let i = 1; i <= daysInMonth; i++) {
+      const data = dayData[i];
+      const isToday =
+        i === new Date().getDate() &&
+        month === new Date().getMonth() &&
+        year === new Date().getFullYear();
+
+      let indicators = "";
+      if (data) {
+        if (data.income > 0)
+          indicators += `<div class="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-sm"></div>`;
+        if (data.expense > 0)
+          indicators += `<div class="w-1.5 h-1.5 rounded-full bg-red-500 shadow-sm"></div>`;
+        if (data.tasks > 0)
+          indicators += `<div class="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-sm"></div>`;
+      }
+
+      html += `
+            <div class="min-h-[60px] bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-lg p-1.5 relative hover:border-indigo-300 dark:hover:border-indigo-700 transition-all cursor-pointer group day-cell" data-day="${i}" data-summary="${
+        data
+          ? `${data.income} Receitas, ${data.expense} Despesas, ${data.tasks} Tarefas`
+          : ""
+      }">
+                <span class="text-xs font-bold ${
+                  isToday
+                    ? "bg-indigo-600 text-white w-5 h-5 flex items-center justify-center rounded-full shadow-md"
+                    : "text-gray-500 dark:text-gray-400"
+                }">${i}</span>
+                <div class="flex gap-1 mt-2 flex-wrap content-end px-1">
+                    ${indicators}
+                </div>
+            </div>
+        `;
+    }
+
+    calendarGrid.innerHTML = html;
+
+    // Add click listeners
+    calendarGrid.querySelectorAll(".day-cell").forEach((cell) => {
+      cell.onclick = () => {
+        const summary = cell.dataset.summary;
+        const day = cell.dataset.day;
+        if (summary) {
+          showToast(`Dia ${day}: ${summary}`, "info");
+        }
+      };
+    });
   };
 
   loadFinancialData();

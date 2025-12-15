@@ -72,8 +72,16 @@ export function Videos() {
   const searchVideos = async (query) => {
     if (!query) return;
 
-    grid.innerHTML =
-      '<div class="col-span-full flex justify-center py-10"><i class="fas fa-circle-notch fa-spin text-indigo-600 text-3xl"></i></div>';
+    // Skeleton Loading
+    grid.innerHTML = Array(6).fill(0).map(() => `
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden border border-gray-100 dark:border-gray-700 animate-pulse">
+            <div class="aspect-video bg-gray-200 dark:bg-gray-700"></div>
+            <div class="p-4 space-y-3">
+                <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
+                <div class="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
+            </div>
+        </div>
+    `).join('');
 
     try {
       // Fallback se não tiver chave configurada (Modo Demonstração)

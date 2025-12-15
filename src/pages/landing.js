@@ -75,6 +75,34 @@ export function Landing() {
                     <p class="text-gray-500 dark:text-gray-400 leading-relaxed">Acesse conteúdos educativos e dicas financeiras do YouTube sem sair do aplicativo.</p>
                 </div>
             </div>
+
+            <!-- Testimonials Section -->
+            <div class="mt-24 w-full">
+                <h2 class="text-3xl font-bold mb-10 text-gray-900 dark:text-white">O que dizem nossos usuários</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
+                        <div class="flex items-center gap-1 text-yellow-400 mb-3">
+                            <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
+                        </div>
+                        <p class="text-gray-600 dark:text-gray-300 text-sm mb-4">"Finalmente consegui organizar minhas contas. O visual é limpo e muito fácil de usar no celular."</p>
+                        <p class="font-bold text-gray-900 dark:text-white text-sm">- Ana P.</p>
+                    </div>
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
+                        <div class="flex items-center gap-1 text-yellow-400 mb-3">
+                            <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
+                        </div>
+                        <p class="text-gray-600 dark:text-gray-300 text-sm mb-4">"O sistema de Kanban para tarefas mudou minha produtividade. Recomendo demais!"</p>
+                        <p class="font-bold text-gray-900 dark:text-white text-sm">- Carlos M.</p>
+                    </div>
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
+                        <div class="flex items-center gap-1 text-yellow-400 mb-3">
+                            <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star-half-alt"></i>
+                        </div>
+                        <p class="text-gray-600 dark:text-gray-300 text-sm mb-4">"Simples, direto e funciona offline. Era exatamente o que eu estava procurando."</p>
+                        <p class="font-bold text-gray-900 dark:text-white text-sm">- Beatriz S.</p>
+                    </div>
+                </div>
+            </div>
         </main>
 
         <!-- Footer -->

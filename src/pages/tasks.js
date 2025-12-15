@@ -299,11 +299,16 @@ export function Tasks() {
       done: element.querySelector("#col-done"),
     };
 
-    // Limpar colunas
+    // Skeleton Loading for Columns
+    const skeletonCard = `
+        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 animate-pulse">
+            <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-3"></div>
+            <div class="h-3 bg-gray-200 dark:bg-gray-700 rounded w-full mb-2"></div>
+            <div class="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
+        </div>
+    `;
     Object.values(cols).forEach(
-      (col) =>
-        (col.innerHTML =
-          '<div class="flex justify-center py-4"><i class="fas fa-circle-notch fa-spin text-indigo-500"></i></div>')
+      (col) => (col.innerHTML = Array(2).fill(skeletonCard).join(""))
     );
 
     try {
@@ -311,6 +316,13 @@ export function Tasks() {
       Object.values(cols).forEach((col) => (col.innerHTML = "")); // Limpar loaders
 
       const counts = { pending: 0, in_progress: 0, done: 0 };
+
+      // Empty States for Columns
+      const emptyState = (text) => `
+        <div class="text-center py-6 opacity-50 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg">
+            <p class="text-sm text-gray-500 dark:text-gray-400">${text}</p>
+        </div>
+      `;
 
       tasks.forEach((task) => {
         counts[task.status]++;
@@ -392,11 +404,20 @@ export function Tasks() {
             showConfirm("Excluir esta tarefa?", async () => {
               await deleteTask(task.id);
               renderTasks();
+              showToast("Tarefa excluída com sucesso", "success");
             });
           });
 
         cols[task.status].appendChild(card);
       });
+
+      // Apply Empty States if needed
+      if (counts.pending === 0)
+        cols.pending.innerHTML = emptyState("Sem tarefas pendentes");
+      if (counts.in_progress === 0)
+        cols.in_progress.innerHTML = emptyState("Nada em andamento");
+      if (counts.done === 0)
+        cols.done.innerHTML = emptyState("Nenhuma tarefa concluída");
 
       // Atualizar contadores
       Object.keys(counts).forEach(

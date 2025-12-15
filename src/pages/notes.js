@@ -25,7 +25,8 @@ export function Notes() {
     bell: '<i class="fas fa-bell"></i>',
     theme: '<i class="fas fa-adjust"></i>',
     edit: '<i class="fas fa-pen"></i>', // Ícone de Edição (Lápis)
-    empty: '<i class="far fa-sticky-note text-6xl text-gray-300 dark:text-gray-600 mb-4"></i>',
+    empty:
+      '<i class="far fa-sticky-note text-6xl text-gray-300 dark:text-gray-600 mb-4"></i>',
   };
 
   element.innerHTML = `
@@ -178,33 +179,61 @@ export function Notes() {
     `;
 
   // --- Logic & Data ---
-  
-  const colors = ["white", "red", "orange", "yellow", "green", "teal", "blue", "darkblue", "purple", "pink", "brown", "gray"];
+
+  const colors = [
+    "white",
+    "red",
+    "orange",
+    "yellow",
+    "green",
+    "teal",
+    "blue",
+    "darkblue",
+    "purple",
+    "pink",
+    "brown",
+    "gray",
+  ];
 
   const colorMap = {
     white: "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700",
     red: "bg-red-50 dark:bg-red-900/20 border-red-100 dark:border-red-800/50",
-    orange: "bg-orange-50 dark:bg-orange-900/20 border-orange-100 dark:border-orange-800/50",
-    yellow: "bg-yellow-50 dark:bg-yellow-900/20 border-yellow-100 dark:border-yellow-800/50",
-    green: "bg-green-50 dark:bg-green-900/20 border-green-100 dark:border-green-800/50",
+    orange:
+      "bg-orange-50 dark:bg-orange-900/20 border-orange-100 dark:border-orange-800/50",
+    yellow:
+      "bg-yellow-50 dark:bg-yellow-900/20 border-yellow-100 dark:border-yellow-800/50",
+    green:
+      "bg-green-50 dark:bg-green-900/20 border-green-100 dark:border-green-800/50",
     teal: "bg-teal-50 dark:bg-teal-900/20 border-teal-100 dark:border-teal-800/50",
     blue: "bg-blue-50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-800/50",
-    darkblue: "bg-indigo-50 dark:bg-indigo-900/20 border-indigo-100 dark:border-indigo-800/50",
-    purple: "bg-purple-50 dark:bg-purple-900/20 border-purple-100 dark:border-purple-800/50",
+    darkblue:
+      "bg-indigo-50 dark:bg-indigo-900/20 border-indigo-100 dark:border-indigo-800/50",
+    purple:
+      "bg-purple-50 dark:bg-purple-900/20 border-purple-100 dark:border-purple-800/50",
     pink: "bg-pink-50 dark:bg-pink-900/20 border-pink-100 dark:border-pink-800/50",
-    brown: "bg-stone-50 dark:bg-stone-900/20 border-stone-100 dark:border-stone-800/50",
+    brown:
+      "bg-stone-50 dark:bg-stone-900/20 border-stone-100 dark:border-stone-800/50",
     gray: "bg-gray-100 dark:bg-gray-700 border-gray-200 dark:border-gray-600",
   };
 
   const btnColorMap = {
-     white: "#ffffff", red: "#fca5a5", orange: "#fdba74", yellow: "#fde047", green: "#86efac",
-     teal: "#5eead4", blue: "#93c5fd", darkblue: "#a5b4fc", purple: "#d8b4fe", pink: "#f9a8d4",
-     brown: "#d6d3d1", gray: "#e5e7eb"
+    white: "#ffffff",
+    red: "#fca5a5",
+    orange: "#fdba74",
+    yellow: "#fde047",
+    green: "#86efac",
+    teal: "#5eead4",
+    blue: "#93c5fd",
+    darkblue: "#a5b4fc",
+    purple: "#d8b4fe",
+    pink: "#f9a8d4",
+    brown: "#d6d3d1",
+    gray: "#e5e7eb",
   };
 
   // --- Safe Selectors (Proteção contra null) ---
   const $ = (selector) => element.querySelector(selector);
-  
+
   // State
   let notes = [];
   let currentNoteId = null; // ID da nota atualmente no modal de edição
@@ -218,12 +247,14 @@ export function Notes() {
     colors.forEach((color) => {
       const btn = document.createElement("button");
       const isSelected = selected === color;
-      
+
       btn.className = `w-6 h-6 sm:w-8 sm:h-8 rounded-full border border-gray-300 dark:border-gray-600 transition-all duration-200 flex items-center justify-center relative flex-shrink-0 mx-0.5 ${
-        isSelected ? "ring-2 ring-offset-2 ring-indigo-500 dark:ring-offset-gray-800 scale-110" : "hover:scale-110"
+        isSelected
+          ? "ring-2 ring-offset-2 ring-indigo-500 dark:ring-offset-gray-800 scale-110"
+          : "hover:scale-110"
       }`;
       btn.style.backgroundColor = btnColorMap[color];
-      
+
       if (isSelected) {
         btn.innerHTML = `<i class="fas fa-check text-[10px] sm:text-xs text-gray-800"></i>`;
       }
@@ -238,7 +269,7 @@ export function Notes() {
 
   /**
    * Atualiza a cor do container de criação e o estado global `currentColor`.
-   * @param {string} color 
+   * @param {string} color
    */
   const updateCreateContainerColor = (color) => {
     currentColor = color;
@@ -247,50 +278,61 @@ export function Notes() {
 
     const classesToRemove = Object.values(colorMap).join(" ").split(" ");
     container.classList.remove(...classesToRemove);
-    
+
     const newClasses = (colorMap[color] || colorMap.white).split(" ");
     container.classList.add(...newClasses);
-    
-    renderColorPicker($("#color-picker-container"), updateCreateContainerColor, currentColor);
+
+    renderColorPicker(
+      $("#color-picker-container"),
+      updateCreateContainerColor,
+      currentColor
+    );
   };
 
   const updateEditModalColor = (color) => {
-    currentColor = color; 
+    currentColor = color;
     const content = $("#edit-modal-content");
     if (!content) return;
 
     const classesToRemove = Object.values(colorMap).join(" ").split(" ");
     content.classList.remove(...classesToRemove);
-    
+
     const newClasses = (colorMap[color] || colorMap.white).split(" ");
     content.classList.add(...newClasses);
-    
-    renderColorPicker($("#edit-color-picker"), (c) => {
+
+    renderColorPicker(
+      $("#edit-color-picker"),
+      (c) => {
         updateEditModalColor(c);
         triggerAutoSave();
-    }, currentColor);
+      },
+      currentColor
+    );
   };
 
   const handleDeleteNote = (noteId) => {
     console.log("Delete triggered for ID:", noteId);
     showConfirm("Excluir esta nota?", async () => {
-        if(noteId) {
-            try {
-                await deleteNote(noteId);
-                // Se o modal estiver aberto, feche-o.
-                if (noteId === currentNoteId) {
-                    closeEditModal(false); // Não recarrega, pois loadNotes() já será chamado abaixo
-                }
-                showToast("Nota excluída", "success");
-                loadNotes(); // Recarrega as notas na grade
-            } catch (error) {
-                console.error("ERRO AO EXCLUIR NOTA:", error); 
-                showToast("Erro ao excluir nota. Verifique o console para detalhes.", "error");
-            }
-        } else {
-            console.warn("Delete aborted: Note ID is missing.");
-            showToast("Erro: ID da nota não foi carregado para exclusão.", "error");
+      if (noteId) {
+        try {
+          await deleteNote(noteId);
+          // Se o modal estiver aberto, feche-o.
+          if (noteId === currentNoteId) {
+            closeEditModal(false); // Não recarrega, pois loadNotes() já será chamado abaixo
+          }
+          showToast("Nota excluída", "success");
+          loadNotes(); // Recarrega as notas na grade
+        } catch (error) {
+          console.error("ERRO AO EXCLUIR NOTA:", error);
+          showToast(
+            "Erro ao excluir nota. Verifique o console para detalhes.",
+            "error"
+          );
         }
+      } else {
+        console.warn("Delete aborted: Note ID is missing.");
+        showToast("Erro: ID da nota não foi carregado para exclusão.", "error");
+      }
     });
   };
 
@@ -305,7 +347,7 @@ export function Notes() {
     grid.innerHTML = "";
 
     const safeNotes = Array.isArray(notes) ? notes : [];
-    
+
     const filtered = safeNotes.filter(
       (n) =>
         (n.title && n.title.toLowerCase().includes(term)) ||
@@ -322,26 +364,40 @@ export function Notes() {
 
     filtered.forEach((note) => {
       const card = document.createElement("div");
-      const bgClass = colorMap[note.color] || colorMap.white; 
-      
+      const bgClass = colorMap[note.color] || colorMap.white;
+
       // Remove o cursor-pointer e o hover de -translate-y para evitar a interação no card principal
       card.className = `${bgClass} p-5 rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 break-inside-avoid mb-4 group relative border`;
 
       card.innerHTML = `
         <div class="flex justify-between items-start mb-2">
-            ${note.title ? `<h3 class="font-bold text-lg text-gray-900 dark:text-gray-100 line-clamp-2">${note.title}</h3>` : '<span></span>'}
+            ${
+              note.title
+                ? `<h3 class="font-bold text-lg text-gray-900 dark:text-gray-100 line-clamp-2">${note.title}</h3>`
+                : "<span></span>"
+            }
         </div>
-        <p class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap text-sm leading-relaxed line-clamp-[8] font-medium">${note.content || '<span class="italic text-gray-400">Nota vazia</span>'}</p>
+        <p class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap text-sm leading-relaxed line-clamp-[8] font-medium">${
+          note.content || '<span class="italic text-gray-400">Nota vazia</span>'
+        }</p>
         
         <div class="mt-4 flex items-center justify-between min-h-[24px]">
-             ${note.category ? `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-black/5 dark:bg-white/10 text-gray-600 dark:text-gray-300 uppercase tracking-wide border border-black/5 dark:border-white/5">${note.category}</span>` : '<span></span>'}
+             ${
+               note.category
+                 ? `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-black/5 dark:bg-white/10 text-gray-600 dark:text-gray-300 uppercase tracking-wide border border-black/5 dark:border-white/5">${note.category}</span>`
+                 : "<span></span>"
+             }
              
              <!-- Action Buttons: Visíveis permanentemente -->
              <div class="flex items-center gap-1">
-                 <button class="edit-note-btn p-1.5 rounded-full text-gray-500 hover:text-indigo-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" data-id="${note.id}" title="Editar Nota">
+                 <button class="edit-note-btn p-1.5 rounded-full text-gray-500 hover:text-indigo-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" data-id="${
+                   note.id
+                 }" title="Editar Nota">
                      ${icons.edit}
                  </button>
-                 <button class="delete-note-card-btn p-1.5 rounded-full text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors" data-id="${note.id}" title="Excluir Nota">
+                 <button class="delete-note-card-btn p-1.5 rounded-full text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors" data-id="${
+                   note.id
+                 }" title="Excluir Nota">
                      ${icons.trash}
                  </button>
              </div>
@@ -349,22 +405,44 @@ export function Notes() {
       `;
 
       // 1. Ouvinte para abrir o modal de edição (apenas no lápis)
-      card.querySelector('.edit-note-btn')?.addEventListener('click', (e) => {
-          e.stopPropagation(); // Evita qualquer propagação indesejada
-          openEditModal(note);
+      card.querySelector(".edit-note-btn")?.addEventListener("click", (e) => {
+        e.stopPropagation(); // Evita qualquer propagação indesejada
+        openEditModal(note);
       });
-      
+
       // 2. Ouvinte para exclusão (apenas na lixeira)
-      card.querySelector('.delete-note-card-btn')?.addEventListener('click', (e) => {
+      card
+        .querySelector(".delete-note-card-btn")
+        ?.addEventListener("click", (e) => {
           e.stopPropagation(); // Essencial para evitar o bug de fechar modais
           handleDeleteNote(note.id);
-      });
-      
+        });
+
       grid.appendChild(card);
     });
   };
 
   const loadNotes = async () => {
+    const grid = $("#notes-grid");
+    if (grid) {
+      // Skeleton Loading
+      grid.innerHTML = Array(6)
+        .fill(0)
+        .map(
+          () => `
+            <div class="break-inside-avoid mb-4 p-5 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 animate-pulse">
+                <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-3"></div>
+                <div class="space-y-2">
+                    <div class="h-3 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                    <div class="h-3 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                    <div class="h-3 bg-gray-200 dark:bg-gray-700 rounded w-5/6"></div>
+                </div>
+            </div>
+        `
+        )
+        .join("");
+    }
+
     try {
       const result = await getNotes();
       notes = Array.isArray(result) ? result : []; // Garante que é array
@@ -377,91 +455,94 @@ export function Notes() {
     }
   };
 
-
   // --- Category Logic (Mantido inalterado) ---
   const renderCategories = async () => {
     const newSelect = $("#new-note-cat");
     const editSelect = $("#edit-note-cat");
     const list = $("#cats-list");
-    
+
     try {
-        const cats = await getCategories("note") || [];
-        
-        const populate = (sel) => {
-          if (!sel) return;
-          const val = sel.value;
-          sel.innerHTML = '<option value="">Sem etiqueta</option>';
-          cats.forEach((c) => {
-            const opt = document.createElement("option");
-            opt.value = c.name;
-            opt.textContent = c.name;
-            sel.appendChild(opt);
-          });
-          sel.value = val;
-        };
+      const cats = (await getCategories("note")) || [];
 
-        populate(newSelect);
-        populate(editSelect);
+      const populate = (sel) => {
+        if (!sel) return;
+        const val = sel.value;
+        sel.innerHTML = '<option value="">Sem etiqueta</option>';
+        cats.forEach((c) => {
+          const opt = document.createElement("option");
+          opt.value = c.name;
+          opt.textContent = c.name;
+          sel.appendChild(opt);
+        });
+        sel.value = val;
+      };
 
-        if (list) {
-            list.innerHTML = "";
-            if(cats.length === 0) {
-                list.innerHTML = '<div class="text-center text-gray-400 text-sm py-4 italic">Nenhuma etiqueta criada</div>';
-            }
-            cats.forEach((c) => {
-              const div = document.createElement("div");
-              div.className = "flex justify-between items-center p-3 bg-gray-50 hover:bg-gray-100 dark:bg-gray-700/50 dark:hover:bg-gray-700 rounded-xl text-sm transition-colors group";
-              div.innerHTML = `
+      populate(newSelect);
+      populate(editSelect);
+
+      if (list) {
+        list.innerHTML = "";
+        if (cats.length === 0) {
+          list.innerHTML =
+            '<div class="text-center text-gray-400 text-sm py-4 italic">Nenhuma etiqueta criada</div>';
+        }
+        cats.forEach((c) => {
+          const div = document.createElement("div");
+          div.className =
+            "flex justify-between items-center p-3 bg-gray-50 hover:bg-gray-100 dark:bg-gray-700/50 dark:hover:bg-gray-700 rounded-xl text-sm transition-colors group";
+          div.innerHTML = `
                 <span class="font-medium text-gray-700 dark:text-gray-200"><i class="fas fa-tag text-gray-400 mr-2 text-xs"></i>${c.name}</span>
                 <button class="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all p-1.5 rounded-full hover:bg-red-50 dark:hover:bg-red-900/30"><i class="fas fa-trash-alt"></i></button>`;
-              
-              div.querySelector("button").onclick = () =>
-                showConfirm(`Excluir etiqueta "${c.name}"?`, async () => {
-                  await deleteCategory(c.id);
-                  renderCategories();
-                });
-              list.appendChild(div);
+
+          div.querySelector("button").onclick = () =>
+            showConfirm(`Excluir etiqueta "${c.name}"?`, async () => {
+              await deleteCategory(c.id);
+              renderCategories();
             });
-        }
+          list.appendChild(div);
+        });
+      }
     } catch (e) {
-        console.error("Erro categorias:", e);
+      console.error("Erro categorias:", e);
     }
   };
 
   // --- Events Binding (Com Safety Checks) ---
-  
+
   // Mobile Search
   const mobileSearchBtn = $("#mobile-search-btn");
   if (mobileSearchBtn) {
-      mobileSearchBtn.onclick = () => {
-        $("#mobile-search-overlay")?.classList.remove("hidden"); 
-        $("#mobile-search-overlay")?.classList.add("flex");
-        const deskInput = $("#search-notes");
-        const mobInput = $("#mobile-search-input");
-        if(mobInput && deskInput) mobInput.value = deskInput.value;
-        mobInput?.focus();
-      };
+    mobileSearchBtn.onclick = () => {
+      $("#mobile-search-overlay")?.classList.remove("hidden");
+      $("#mobile-search-overlay")?.classList.add("flex");
+      const deskInput = $("#search-notes");
+      const mobInput = $("#mobile-search-input");
+      if (mobInput && deskInput) mobInput.value = deskInput.value;
+      mobInput?.focus();
+    };
   }
 
   $("#close-mobile-search")?.addEventListener("click", () => {
-      $("#mobile-search-overlay")?.classList.remove("flex");
-      $("#mobile-search-overlay")?.classList.add("hidden");
-      const deskInput = $("#search-notes");
-      const mobInput = $("#mobile-search-input");
-      if(deskInput && mobInput) {
-          deskInput.value = mobInput.value;
-          renderNotes();
-      }
+    $("#mobile-search-overlay")?.classList.remove("flex");
+    $("#mobile-search-overlay")?.classList.add("hidden");
+    const deskInput = $("#search-notes");
+    const mobInput = $("#mobile-search-input");
+    if (deskInput && mobInput) {
+      deskInput.value = mobInput.value;
+      renderNotes();
+    }
   });
 
   const syncSearch = () => {
-      const deskInput = $("#search-notes");
-      const mobInput = $("#mobile-search-input");
-      if(deskInput && mobInput) {
-          if (document.activeElement === deskInput) mobInput.value = deskInput.value;
-          else if (document.activeElement === mobInput) deskInput.value = mobInput.value;
-      }
-      renderNotes();
+    const deskInput = $("#search-notes");
+    const mobInput = $("#mobile-search-input");
+    if (deskInput && mobInput) {
+      if (document.activeElement === deskInput)
+        mobInput.value = deskInput.value;
+      else if (document.activeElement === mobInput)
+        deskInput.value = mobInput.value;
+    }
+    renderNotes();
   };
 
   $("#search-notes")?.addEventListener("input", syncSearch);
@@ -469,12 +550,12 @@ export function Notes() {
 
   // Create Note
   const expandCreate = () => {
-      $("#create-note-collapsed")?.classList.add("hidden");
-      $("#create-note-expanded")?.classList.remove("hidden");
-      $("#create-note-expanded")?.classList.add("flex");
-      // Garante que a cor inicial é branca ao expandir
-      updateCreateContainerColor("white"); 
-      $("#new-note-title")?.focus();
+    $("#create-note-collapsed")?.classList.add("hidden");
+    $("#create-note-expanded")?.classList.remove("hidden");
+    $("#create-note-expanded")?.classList.add("flex");
+    // Garante que a cor inicial é branca ao expandir
+    updateCreateContainerColor("white");
+    $("#new-note-title")?.focus();
   };
 
   const collapseCreate = async () => {
@@ -486,15 +567,15 @@ export function Notes() {
       // Usa a variável global `currentColor`
       await saveNote({ title, content, color: currentColor, category: cat });
       showToast("Nota criada", "success");
-      
+
       // Reset inputs
-      if($("#new-note-title")) $("#new-note-title").value = "";
-      if($("#new-note-content")) $("#new-note-content").value = "";
-      if($("#new-note-cat")) $("#new-note-cat").value = "";
+      if ($("#new-note-title")) $("#new-note-title").value = "";
+      if ($("#new-note-content")) $("#new-note-content").value = "";
+      if ($("#new-note-cat")) $("#new-note-cat").value = "";
       currentColor = "white"; // Reset para o estado inicial
       loadNotes();
     }
-    
+
     $("#create-note-expanded")?.classList.add("hidden");
     $("#create-note-expanded")?.classList.remove("flex");
     $("#create-note-collapsed")?.classList.remove("hidden");
@@ -503,21 +584,21 @@ export function Notes() {
 
   $("#create-note-collapsed")?.addEventListener("click", expandCreate);
   $("#create-note-trigger")?.addEventListener("click", () => {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      setTimeout(expandCreate, 300);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    setTimeout(expandCreate, 300);
   });
   $("#close-create-note")?.addEventListener("click", (e) => {
-      e.stopPropagation();
-      collapseCreate();
+    e.stopPropagation();
+    collapseCreate();
   });
 
   // Edit Modal
   const openEditModal = (note) => {
     currentNoteId = note.id; // Define o ID da nota atual
-    if($("#edit-note-title")) $("#edit-note-title").value = note.title;
-    if($("#edit-note-content")) $("#edit-note-content").value = note.content;
-    if($("#edit-note-cat")) $("#edit-note-cat").value = note.category || "";
-    currentColor = note.color || "white"; 
+    if ($("#edit-note-title")) $("#edit-note-title").value = note.title;
+    if ($("#edit-note-content")) $("#edit-note-content").value = note.content;
+    if ($("#edit-note-cat")) $("#edit-note-cat").value = note.category || "";
+    currentColor = note.color || "white";
 
     updateEditModalColor(currentColor);
 
@@ -526,15 +607,15 @@ export function Notes() {
     const content = $("#edit-modal-content");
 
     if (modal) {
-        modal.classList.remove("hidden");
-        // Animation
-        setTimeout(() => {
-            if(backdrop) backdrop.classList.remove("opacity-0");
-            if(content) {
-                content.classList.remove("opacity-0", "scale-95");
-                content.classList.add("opacity-100", "scale-100");
-            }
-        }, 10);
+      modal.classList.remove("hidden");
+      // Animation
+      setTimeout(() => {
+        if (backdrop) backdrop.classList.remove("opacity-0");
+        if (content) {
+          content.classList.remove("opacity-0", "scale-95");
+          content.classList.add("opacity-100", "scale-100");
+        }
+      }, 10);
     }
   };
 
@@ -545,20 +626,20 @@ export function Notes() {
   const closeEditModal = (shouldReload = true) => {
     if (autoSaveTimer) clearTimeout(autoSaveTimer);
     const saveStatus = $("#save-status");
-    if(saveStatus) saveStatus.classList.add("opacity-0");
+    if (saveStatus) saveStatus.classList.add("opacity-0");
 
     const modal = $("#edit-modal");
     const backdrop = $("#edit-modal-backdrop");
     const content = $("#edit-modal-content");
 
-    if(backdrop) backdrop.classList.add("opacity-0");
-    if(content) {
-        content.classList.remove("opacity-100", "scale-100");
-        content.classList.add("opacity-0", "scale-95");
+    if (backdrop) backdrop.classList.add("opacity-0");
+    if (content) {
+      content.classList.remove("opacity-100", "scale-100");
+      content.classList.add("opacity-0", "scale-95");
     }
-    
+
     setTimeout(() => {
-      if(modal) modal.classList.add("hidden");
+      if (modal) modal.classList.add("hidden");
       currentNoteId = null;
       if (shouldReload) loadNotes();
     }, 300);
@@ -567,7 +648,7 @@ export function Notes() {
   const triggerAutoSave = () => {
     if (autoSaveTimer) clearTimeout(autoSaveTimer);
     const saveStatus = $("#save-status");
-    if(saveStatus) saveStatus.classList.add("opacity-0");
+    if (saveStatus) saveStatus.classList.add("opacity-0");
 
     autoSaveTimer = setTimeout(async () => {
       if (!currentNoteId) return;
@@ -579,13 +660,16 @@ export function Notes() {
       // USA a variável global `currentColor` para salvar a cor na edição
       await saveNote({
         id: currentNoteId,
-        title, content, color: currentColor, category: cat,
+        title,
+        content,
+        color: currentColor,
+        category: cat,
       });
 
-      if(saveStatus) {
-          saveStatus.classList.remove("opacity-0");
-          saveStatus.classList.add("opacity-100");
-          setTimeout(() => saveStatus.classList.add("opacity-0"), 2000);
+      if (saveStatus) {
+        saveStatus.classList.remove("opacity-0");
+        saveStatus.classList.add("opacity-100");
+        setTimeout(() => saveStatus.classList.add("opacity-0"), 2000);
       }
     }, 800);
   };
@@ -594,74 +678,85 @@ export function Notes() {
   $("#edit-note-content")?.addEventListener("input", triggerAutoSave);
   $("#edit-note-cat")?.addEventListener("change", triggerAutoSave);
   $("#close-modal-btn")?.addEventListener("click", () => closeEditModal(true));
-  $("#edit-modal-backdrop")?.addEventListener("click", () => closeEditModal(true));
+  $("#edit-modal-backdrop")?.addEventListener("click", () =>
+    closeEditModal(true)
+  );
 
   // Lógica de exclusão da lixeira dentro do MODAL
   $("#delete-note-modal-btn")?.addEventListener("click", (e) => {
-      e.stopPropagation(); // ESSENCIAL: Impede que o clique feche o modal
-      handleDeleteNote(currentNoteId);
+    e.stopPropagation(); // ESSENCIAL: Impede que o clique feche o modal
+    handleDeleteNote(currentNoteId);
   });
 
   // Lógica de cópia dentro do MODAL
   $("#copy-note-btn")?.addEventListener("click", async (e) => {
-      e.stopPropagation(); // Adicionado por segurança
-      const t = $("#edit-note-title")?.value || "";
-      const c = $("#edit-note-content")?.value || "";
-      try {
-          // Fallback seguro para cópia
-          const textToCopy = `${t}\n\n${c}`;
-          if (navigator.clipboard && navigator.clipboard.writeText) {
-              await navigator.clipboard.writeText(textToCopy);
-          } else {
-              // Fallback para ambientes restritos (como iframe)
-              const textarea = document.createElement('textarea');
-              textarea.value = textToCopy;
-              textarea.style.position = 'fixed'; 
-              document.body.appendChild(textarea);
-              textarea.focus();
-              textarea.select();
-              try {
-                  document.execCommand('copy');
-              } catch (err) {
-                  console.error('Falha ao usar execCommand para copiar:', err);
-              }
-              document.body.removeChild(textarea);
-          }
-          showToast("Copiado!", "success");
-      } catch (err) {
-          console.error("Erro ao copiar nota:", err);
-          showToast("Falha ao copiar", "error");
+    e.stopPropagation(); // Adicionado por segurança
+    const t = $("#edit-note-title")?.value || "";
+    const c = $("#edit-note-content")?.value || "";
+    try {
+      // Fallback seguro para cópia
+      const textToCopy = `${t}\n\n${c}`;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(textToCopy);
+      } else {
+        // Fallback para ambientes restritos (como iframe)
+        const textarea = document.createElement("textarea");
+        textarea.value = textToCopy;
+        textarea.style.position = "fixed";
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        try {
+          document.execCommand("copy");
+        } catch (err) {
+          console.error("Falha ao usar execCommand para copiar:", err);
+        }
+        document.body.removeChild(textarea);
       }
+      showToast("Copiado!", "success");
+    } catch (err) {
+      console.error("Erro ao copiar nota:", err);
+      showToast("Falha ao copiar", "error");
+    }
   });
 
   // Cats Modal
   const toggleCats = (show) => {
-      const m = $("#cats-modal");
-      if(m) {
-          if(show) { m.classList.remove("hidden"); m.classList.add("flex"); }
-          else { m.classList.add("hidden"); m.classList.remove("flex"); }
+    const m = $("#cats-modal");
+    if (m) {
+      if (show) {
+        m.classList.remove("hidden");
+        m.classList.add("flex");
+      } else {
+        m.classList.add("hidden");
+        m.classList.remove("flex");
       }
+    }
   };
 
   $("#manage-note-cats-btn")?.addEventListener("click", (e) => {
-      e.stopPropagation();
-      toggleCats(true);
+    e.stopPropagation();
+    toggleCats(true);
   });
   $("#close-cats-modal")?.addEventListener("click", () => toggleCats(false));
   $("#cats-modal-backdrop")?.addEventListener("click", () => toggleCats(false));
 
   $("#add-cat-form")?.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const input = e.target.elements.catName;
-      if(input && input.value.trim()) {
-          await addCategory(input.value.trim(), "note");
-          input.value = "";
-          renderCategories();
-      }
+    e.preventDefault();
+    const input = e.target.elements.catName;
+    if (input && input.value.trim()) {
+      await addCategory(input.value.trim(), "note");
+      input.value = "";
+      renderCategories();
+    }
   });
 
   // Init
-  renderColorPicker($("#color-picker-container"), updateCreateContainerColor, "white");
+  renderColorPicker(
+    $("#color-picker-container"),
+    updateCreateContainerColor,
+    "white"
+  );
   loadNotes();
   renderCategories();
 

@@ -339,8 +339,24 @@ export function Finance() {
     const y = parseInt(filterYear.value);
     const chartCanvas = element.querySelector("#year-comparison-chart");
 
-    listContainer.innerHTML =
-      '<div class="flex justify-center py-4"><i class="fas fa-circle-notch fa-spin text-indigo-500"></i></div>';
+    // Skeleton Loading
+    listContainer.innerHTML = Array(5)
+      .fill(0)
+      .map(
+        () => `
+        <div class="flex items-center justify-between p-3 border-b border-gray-100 dark:border-gray-700 animate-pulse">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700"></div>
+                <div class="space-y-2">
+                    <div class="h-4 w-32 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                    <div class="h-3 w-20 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                </div>
+            </div>
+            <div class="h-4 w-24 bg-gray-200 dark:bg-gray-700 rounded"></div>
+        </div>
+    `
+      )
+      .join("");
 
     try {
       const transactions = await getTransactions(m, y);
@@ -394,8 +410,12 @@ export function Finance() {
       });
 
       if (transactions.length === 0) {
-        listContainer.innerHTML =
-          '<p class="text-center text-gray-500 py-4">Nenhuma transação encontrada neste período.</p>';
+        listContainer.innerHTML = `<div class="flex flex-col items-center justify-center py-8 text-center">
+              <div class="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-3">
+                  <i class="fas fa-receipt text-gray-400 text-2xl"></i>
+              </div>
+              <p class="text-gray-500 dark:text-gray-400 text-sm">Nenhuma transação neste período.</p>
+          </div>`;
         return;
       }
 
