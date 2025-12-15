@@ -1,8 +1,6 @@
 import {
   auth,
   signInWithEmailAndPassword,
-  GoogleAuthProvider,
-  signInWithPopup,
   signOut,
 } from "../services/firebase.js";
 import { showToast } from "../utils/ui.js";
@@ -78,26 +76,6 @@ export function Login() {
                 </button>
             </form>
 
-            <div class="mt-6">
-                <div class="relative">
-                    <div class="absolute inset-0 flex items-center">
-                        <div class="w-full border-t border-gray-200 dark:border-gray-700"></div>
-                    </div>
-                    <div class="relative flex justify-center text-sm">
-                        <span class="px-2 bg-white dark:bg-gray-800 text-gray-500">
-                            Ou continue com
-                        </span>
-                    </div>
-                </div>
-
-                <div class="mt-6">
-                    <button id="btn-google" class="w-full flex justify-center items-center px-4 py-3 border border-gray-300 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600 transition-all">
-                        <img class="h-5 w-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google logo">
-                        <span>Google</span>
-                    </button>
-                </div>
-            </div>
-
             <p class="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
                 Não tem uma conta?
                 <a href="#/register" class="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 hover:underline transition-colors">
@@ -132,12 +110,6 @@ export function Login() {
         password
       );
 
-      if (!userCredential.user.emailVerified) {
-        await signOut(auth);
-        renderVerificationModal(element, email);
-        return;
-      }
-
       showToast("Bem-vindo de volta!");
       window.location.hash = "/dashboard";
     } catch (error) {
@@ -146,80 +118,5 @@ export function Login() {
     }
   });
 
-  element.querySelector("#btn-google").addEventListener("click", async () => {
-    try {
-      const provider = new GoogleAuthProvider();
-      // Using signInWithPopup is better for PWAs to avoid navigation issues
-      await signInWithPopup(auth, provider);
-      showToast("Login com Google realizado!");
-      window.location.hash = "/dashboard";
-    } catch (error) {
-      console.error(error);
-      if (error.code === "auth/popup-closed-by-user") {
-        showToast("Login cancelado.", "info");
-        return;
-      }
-      showToast("Erro no login com Google.", "error");
-    }
-  });
-
-  // Verifica se veio do cadastro
-  const pendingEmail = sessionStorage.getItem("pendingVerificationEmail");
-  if (pendingEmail) {
-    renderVerificationModal(element, pendingEmail);
-    sessionStorage.removeItem("pendingVerificationEmail");
-  }
-
   return element;
-}
-
-function renderVerificationModal(parentElement, email) {
-  const modal = document.createElement("div");
-  modal.className =
-    "fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm animate-fade-in";
-
-  modal.innerHTML = `
-        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all scale-100 border border-gray-100 dark:border-gray-700">
-            <div class="bg-indigo-600 p-4 text-center">
-                <div class="mx-auto h-16 w-16 bg-white/20 rounded-full flex items-center justify-center mb-2 backdrop-blur-md">
-                    <i class="fas fa-envelope-open-text text-3xl text-white"></i>
-                </div>
-                <h3 class="text-xl font-bold text-white">Verifique seu Email</h3>
-            </div>
-            
-            <div class="p-6 space-y-4">
-                <p class="text-center text-gray-600 dark:text-gray-300">
-                    Para sua segurança, precisamos que você confirme seu endereço de email antes de entrar.
-                </p>
-                
-                <div class="bg-indigo-50 dark:bg-indigo-900/30 rounded-lg p-3 text-center border border-indigo-100 dark:border-indigo-800">
-                    <span class="text-indigo-700 dark:text-indigo-300 font-medium break-all">${email}</span>
-                </div>
-
-                <div class="bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-400 p-4 rounded-r-lg">
-                    <div class="flex">
-                        <div class="flex-shrink-0">
-                            <i class="fas fa-search text-yellow-500"></i>
-                        </div>
-                        <div class="ml-3">
-                            <h3 class="text-sm font-bold text-yellow-800 dark:text-yellow-200">Não encontrou?</h3>
-                            <p class="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
-                                Verifique a caixa de <strong>Spam</strong> ou <strong>Lixo Eletrônico</strong>. O email pode ter caído lá por engano.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                <button id="close-modal-btn" class="w-full py-3 px-4 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-white rounded-xl font-medium transition-colors">
-                    Entendi, vou verificar
-                </button>
-            </div>
-        </div>
-    `;
-
-  parentElement.appendChild(modal);
-
-  modal.querySelector("#close-modal-btn").onclick = () => {
-    modal.remove();
-  };
 }

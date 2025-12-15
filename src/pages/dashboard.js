@@ -11,6 +11,7 @@ import {
   query,
   where,
   getDocs,
+  sendEmailVerification,
 } from "../services/firebase.js";
 import {
   getTransactions,
@@ -68,6 +69,23 @@ export function Dashboard() {
         </button>
       </div>
     </header>
+
+    <!-- Verification Banner -->
+    ${
+      !user.emailVerified
+        ? `
+    <div id="verify-banner" class="bg-yellow-50 dark:bg-yellow-900/20 border-b border-yellow-100 dark:border-yellow-800/50 px-6 py-3 flex items-center justify-between animate-fade-in">
+        <div class="flex items-center gap-3">
+            <i class="fas fa-exclamation-triangle text-yellow-600 dark:text-yellow-500"></i>
+            <p class="text-sm text-yellow-800 dark:text-yellow-200">
+                Seu email ainda não foi verificado. 
+                <button id="resend-verify" class="underline font-bold hover:text-yellow-900 dark:hover:text-yellow-100 ml-1">Reenviar email</button>
+            </p>
+        </div>
+        <button id="close-verify-banner" class="text-yellow-600 hover:text-yellow-800 dark:text-yellow-400 dark:hover:text-yellow-200"><i class="fas fa-times"></i></button>
+    </div>`
+        : ""
+    }
 
     <!-- Main Content -->
     <main class="flex-1 p-6 max-w-5xl mx-auto w-full overflow-y-auto">
@@ -1601,6 +1619,25 @@ export function Dashboard() {
       console.error(e);
     }
   }, 1000);
+
+  // Verification Banner Logic
+  const verifyBanner = element.querySelector("#verify-banner");
+  if (verifyBanner) {
+    verifyBanner.querySelector("#close-verify-banner").onclick = () => {
+      verifyBanner.remove();
+    };
+    verifyBanner.querySelector("#resend-verify").onclick = async () => {
+      try {
+        await sendEmailVerification(user);
+        showToast("Email de verificação reenviado!", "success");
+      } catch (error) {
+        showToast(
+          "Erro ao reenviar email. Tente novamente mais tarde.",
+          "error"
+        );
+      }
+    };
+  }
 
   return element;
 }

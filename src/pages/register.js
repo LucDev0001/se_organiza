@@ -147,9 +147,8 @@ export function Register() {
         }
 
         await sendEmailVerification(user);
-        // Salva o email na sessão para mostrar o modal no login
-        sessionStorage.setItem("pendingVerificationEmail", email);
-        window.location.hash = "/login";
+        showToast("Conta criada! Verifique seu email.", "info");
+        window.location.hash = "/dashboard";
       } catch (error) {
         console.error(error);
         let msg = "Erro ao criar conta.";

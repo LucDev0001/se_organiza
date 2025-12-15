@@ -1,55 +1,24 @@
 {
-  "name": "Se Organiza - Gestão Pessoal",
-  "short_name": "SeOrganiza",
-  "description": "Aplicativo completo para gestão financeira, tarefas e notas pessoais.",
-  "id": "se_organiza_pwa",
-  "start_url": "../",
-  "scope": "../",
+  "name": "Se Organiza",
+  "short_name": "Se Organiza",
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#4F46E5",
-  "orientation": "portrait-primary",
-  "lang": "pt-BR",
-  "dir": "ltr",
-  "categories": ["finance", "productivity", "utilities"],
+  "description": "Organize sua vida financeira e tarefas.",
+  "orientation": "portrait",
   "icons": [
     {
-      "src": "icons/icon-192.png",
+      "src": "./icons/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "icons/icon-512.png",
+      "src": "./icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
-    }
-  ],
-  "shortcuts": [
-    {
-      "name": "Nova Transação",
-      "short_name": "Transação",
-      "description": "Adicionar nova movimentação financeira",
-      "url": "../#finance",
-      "icons": [
-        {
-          "src": "icons/icon-192.png",
-          "sizes": "192x192"
-        }
-      ]
-    },
-    {
-      "name": "Minhas Tarefas",
-      "short_name": "Tarefas",
-      "description": "Ver e gerenciar tarefas",
-      "url": "../#tasks",
-      "icons": [
-        {
-          "src": "icons/icon-192.png",
-          "sizes": "192x192"
-        }
-      ]
     }
   ]
 }
