@@ -18,6 +18,38 @@ export function Register() {
   element.className =
     "min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4 sm:px-6 lg:px-8 transition-colors duration-200";
 
+  // Loading inicial
+  element.innerHTML = `
+      <div class="flex flex-col items-center">
+          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
+          <p class="text-gray-500 dark:text-gray-400 font-medium">Verificando cadastro...</p>
+      </div>
+  `;
+
+  const handleGoogleRegisterSuccess = async (user) => {
+    try {
+      // Verificar se o usuário já existe no banco, se não, cria
+      const userDocRef = doc(db, "users", user.uid);
+      const userDoc = await getDoc(userDocRef);
+
+      if (!userDoc.exists()) {
+        await setDoc(userDocRef, {
+          email: user.email,
+          displayName: user.displayName,
+          photoURL: user.photoURL,
+          createdAt: new Date().toISOString(),
+          isPremium: false,
+        });
+      }
+
+      showToast("Cadastro realizado com sucesso!", "success");
+      window.location.hash = "/dashboard";
+    } catch (error) {
+      console.error(error);
+      showToast("Erro ao finalizar cadastro.", "error");
+    }
+  };
+
   const renderForm = () => {
     element.innerHTML = `
         <div class="max-w-md w-full space-y-8 bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700">
@@ -223,34 +255,17 @@ export function Register() {
   // Processar retorno do Redirect (PWA)
   getRedirectResult(auth)
     .then((result) => {
-      if (result) handleGoogleRegisterSuccess(result.user);
-    })
-    .catch((error) => console.error(error));
-
-  const handleGoogleRegisterSuccess = async (user) => {
-    try {
-      // Verificar se o usuário já existe no banco, se não, cria
-      const userDocRef = doc(db, "users", user.uid);
-      const userDoc = await getDoc(userDocRef);
-
-      if (!userDoc.exists()) {
-        await setDoc(userDocRef, {
-          email: user.email,
-          displayName: user.displayName,
-          photoURL: user.photoURL,
-          createdAt: new Date().toISOString(),
-          isPremium: false,
-        });
+      if (result) {
+        handleGoogleRegisterSuccess(result.user);
+      } else {
+        renderForm();
       }
+    })
+    .catch((error) => {
+      console.error("Erro no redirecionamento Google:", error);
+      showToast("Falha ao processar cadastro Google.", "error");
+      renderForm();
+    });
 
-      showToast("Cadastro realizado com sucesso!", "success");
-      window.location.hash = "/dashboard";
-    } catch (error) {
-      console.error(error);
-      showToast("Erro ao finalizar cadastro.", "error");
-    }
-  };
-
-  renderForm();
   return element;
 }

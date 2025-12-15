@@ -17,7 +17,29 @@ export function Login() {
   element.className =
     "min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4 sm:px-6 lg:px-8 transition-colors duration-200";
 
+  // Loading inicial
   element.innerHTML = `
+      <div class="flex flex-col items-center">
+          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
+          <p class="text-gray-500 dark:text-gray-400 font-medium">Verificando credenciais...</p>
+      </div>
+  `;
+
+  const handleGoogleLoginSuccess = async (user) => {
+    // Verificar suspensão
+    const userDoc = await getDoc(doc(db, "users", user.uid));
+    if (userDoc.exists() && userDoc.data().isSuspended) {
+      await signOut(auth);
+      showToast("Conta suspensa. Entre em contato com o suporte.", "error");
+      return;
+    }
+
+    showToast(`Bem-vindo, ${user.displayName || "Usuário"}!`);
+    window.location.hash = "/dashboard";
+  };
+
+  const renderForm = () => {
+    element.innerHTML = `
         <div class="max-w-md w-full space-y-8 bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700">
             <div class="text-center">
                 <div class="mx-auto h-16 w-16 bg-gradient-to-tr from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center mb-6 shadow-lg shadow-indigo-500/30 transform rotate-3 hover:rotate-0 transition-transform duration-300">
@@ -106,92 +128,88 @@ export function Login() {
         </div>
     `;
 
-  // Toggle Password Visibility
-  const toggleBtn = element.querySelector("#toggle-password");
-  const passInput = element.querySelector("#password");
-  toggleBtn.onclick = () => {
-    const type =
-      passInput.getAttribute("type") === "password" ? "text" : "password";
-    passInput.setAttribute("type", type);
-    toggleBtn.innerHTML = `<i class="fas ${
-      type === "password" ? "fa-eye" : "fa-eye-slash"
-    }"></i>`;
-  };
+    // Toggle Password Visibility
+    const toggleBtn = element.querySelector("#toggle-password");
+    const passInput = element.querySelector("#password");
+    toggleBtn.onclick = () => {
+      const type =
+        passInput.getAttribute("type") === "password" ? "text" : "password";
+      passInput.setAttribute("type", type);
+      toggleBtn.innerHTML = `<i class="fas ${
+        type === "password" ? "fa-eye" : "fa-eye-slash"
+      }"></i>`;
+    };
 
-  const form = element.querySelector("#login-form");
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const email = form.email.value;
-    const password = form.password.value;
+    const form = element.querySelector("#login-form");
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = form.email.value;
+      const password = form.password.value;
 
-    try {
-      await signInWithEmailAndPassword(auth, email, password);
-      showToast("Bem-vindo de volta!");
-      window.location.hash = "/dashboard";
-    } catch (error) {
-      console.error(error);
-      let msg = "Erro ao fazer login.";
-      if (
-        error.code === "auth/invalid-credential" ||
-        error.code === "auth/wrong-password" ||
-        error.code === "auth/user-not-found"
-      ) {
-        msg = "Email ou senha incorretos.";
-      } else if (error.code === "auth/too-many-requests") {
-        msg = "Muitas tentativas. Tente novamente mais tarde.";
-      }
-      showToast(msg, "error");
-    }
-  });
-
-  // Lógica de Login com Google
-  const btnGoogle = element.querySelector("#btn-google");
-  btnGoogle.onclick = async () => {
-    // Verifica se é PWA (Standalone) ou Mobile para usar Redirect (mais confiável)
-    const isPwa =
-      window.matchMedia("(display-mode: standalone)").matches ||
-      window.navigator.standalone ||
-      /Mobi|Android/i.test(navigator.userAgent);
-
-    if (isPwa) {
       try {
-        await signInWithRedirect(auth, googleProvider);
-        return; // O redirecionamento ocorrerá, interrompe o fluxo aqui
+        await signInWithEmailAndPassword(auth, email, password);
+        showToast("Bem-vindo de volta!");
+        window.location.hash = "/dashboard";
       } catch (error) {
         console.error(error);
-        showToast("Erro ao iniciar login com Google.", "error");
+        let msg = "Erro ao fazer login.";
+        if (
+          error.code === "auth/invalid-credential" ||
+          error.code === "auth/wrong-password" ||
+          error.code === "auth/user-not-found"
+        ) {
+          msg = "Email ou senha incorretos.";
+        } else if (error.code === "auth/too-many-requests") {
+          msg = "Muitas tentativas. Tente novamente mais tarde.";
+        }
+        showToast(msg, "error");
       }
-    }
+    });
 
-    // Fallback para Desktop (Popup)
-    try {
-      const result = await signInWithPopup(auth, googleProvider);
-      await handleGoogleLoginSuccess(result.user);
-    } catch (error) {
-      console.error(error);
-      showToast("Erro ao entrar com Google.", "error");
-    }
+    // Lógica de Login com Google
+    const btnGoogle = element.querySelector("#btn-google");
+    btnGoogle.onclick = async () => {
+      // Verifica se é PWA (Standalone) ou Mobile para usar Redirect (mais confiável)
+      const isPwa =
+        window.matchMedia("(display-mode: standalone)").matches ||
+        window.navigator.standalone ||
+        /Mobi|Android/i.test(navigator.userAgent);
+
+      if (isPwa) {
+        try {
+          await signInWithRedirect(auth, googleProvider);
+          return; // O redirecionamento ocorrerá, interrompe o fluxo aqui
+        } catch (error) {
+          console.error(error);
+          showToast("Erro ao iniciar login com Google.", "error");
+        }
+      }
+
+      // Fallback para Desktop (Popup)
+      try {
+        const result = await signInWithPopup(auth, googleProvider);
+        await handleGoogleLoginSuccess(result.user);
+      } catch (error) {
+        console.error(error);
+        showToast("Erro ao entrar com Google.", "error");
+      }
+    };
   };
 
   // Processar retorno do Redirect (necessário para PWA)
   getRedirectResult(auth)
     .then((result) => {
-      if (result) handleGoogleLoginSuccess(result.user);
+      if (result) {
+        handleGoogleLoginSuccess(result.user);
+      } else {
+        renderForm();
+      }
     })
-    .catch((error) => console.error(error));
-
-  const handleGoogleLoginSuccess = async (user) => {
-    // Verificar suspensão
-    const userDoc = await getDoc(doc(db, "users", user.uid));
-    if (userDoc.exists() && userDoc.data().isSuspended) {
-      await signOut(auth);
-      showToast("Conta suspensa. Entre em contato com o suporte.", "error");
-      return;
-    }
-
-    showToast(`Bem-vindo, ${user.displayName || "Usuário"}!`);
-    window.location.hash = "/dashboard";
-  };
+    .catch((error) => {
+      console.error("Erro no redirecionamento Google:", error);
+      showToast("Falha ao recuperar login do Google.", "error");
+      renderForm();
+    });
 
   return element;
 }
