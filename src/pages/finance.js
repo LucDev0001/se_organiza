@@ -533,9 +533,39 @@ export function Finance() {
     e.preventDefault();
     const name = addCatForm.catName.value.trim();
     if (name) {
-      await addCategory(name, "finance");
-      addCatForm.reset();
-      renderCategories();
+      try {
+        await addCategory(name, "finance");
+        addCatForm.reset();
+        renderCategories();
+      } catch (error) {
+        if (error.message === "LIMIT_REACHED") {
+          // Custom Toast for Upgrade
+          const toast = document.createElement("div");
+          toast.className =
+            "fixed bottom-4 right-4 bg-gray-900 text-white px-6 py-4 rounded-xl shadow-2xl z-[100] flex flex-col gap-3 animate-fade-in border border-gray-700 max-w-sm";
+          toast.innerHTML = `
+                <div class="flex items-center gap-3">
+                    <div class="bg-orange-500/20 p-2 rounded-full text-orange-500"><i class="fas fa-lock"></i></div>
+                    <div>
+                        <h4 class="font-bold text-sm">Limite Atingido</h4>
+                        <p class="text-xs opacity-80">Usuários Free criam até 3 categorias.</p>
+                    </div>
+                </div>
+                <button id="toast-upgrade-btn" class="w-full py-2 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg text-xs font-bold mt-1">
+                    Desbloquear Ilimitado 🚀
+                </button>
+            `;
+          document.body.appendChild(toast);
+          toast.querySelector("#toast-upgrade-btn").onclick = () => {
+            window.location.hash = "/plans";
+            toast.remove();
+          };
+          setTimeout(() => toast.remove(), 5000);
+        } else {
+          console.error(error);
+          showToast("Erro ao adicionar categoria.", "error");
+        }
+      }
     }
   };
 

@@ -98,6 +98,7 @@ export function Admin() {
                                 <th class="px-6 py-3 text-center">Tarefas</th>
                                 <th class="px-6 py-3">Última Atividade</th>
                                 <th class="px-6 py-3">Plano</th>
+                                <th class="px-6 py-3">Validade</th>
                                 <th class="px-6 py-3 text-right">Ações</th>
                             </tr>
                         </thead>
@@ -105,6 +106,41 @@ export function Admin() {
                             <tr><td colspan="3" class="px-6 py-4 text-center">Carregando...</td></tr>
                         </tbody>
                     </table>
+                </div>
+            </div>
+
+            <!-- Modal de Assinatura -->
+            <div id="subscription-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 backdrop-blur-sm p-4">
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm p-6">
+                    <h3 class="text-lg font-bold mb-4 text-gray-800 dark:text-white">Gerenciar Assinatura</h3>
+                    <form id="subscription-form" class="space-y-4">
+                        <input type="hidden" name="userId">
+                        <div>
+                            <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Status</label>
+                            <select name="isPremium" class="w-full rounded-lg border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 p-2 outline-none">
+                                <option value="false">Grátis</option>
+                                <option value="true">Premium</option>
+                            </select>
+                        </div>
+                        <div id="dates-container" class="space-y-4 hidden">
+                            <div>
+                                <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Data Início</label>
+                                <input type="date" name="startDate" class="w-full rounded-lg border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 p-2 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Data Fim (Validade)</label>
+                                <input type="date" name="endDate" class="w-full rounded-lg border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 p-2 outline-none">
+                            </div>
+                            <div class="flex gap-2 text-xs">
+                                <button type="button" class="quick-date px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded" data-days="30">+30 Dias</button>
+                                <button type="button" class="quick-date px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded" data-days="365">+1 Ano</button>
+                            </div>
+                        </div>
+                        <div class="flex justify-end gap-2 mt-4">
+                            <button type="button" id="close-sub-modal" class="px-3 py-1.5 text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 rounded">Cancelar</button>
+                            <button type="submit" class="px-3 py-1.5 bg-indigo-600 text-white rounded hover:bg-indigo-700">Salvar</button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </main>
@@ -181,8 +217,16 @@ export function Admin() {
     }
 
     usersTable.innerHTML = usersList
-      .map(
-        (u) => `
+      .map((u) => {
+        const endDate = u.premiumEndDate ? new Date(u.premiumEndDate) : null;
+        const isExpired = endDate && endDate < new Date();
+        const statusColor = u.isPremium
+          ? isExpired
+            ? "bg-red-100 text-red-800"
+            : "bg-yellow-100 text-yellow-800"
+          : "bg-gray-200 text-gray-600";
+
+        return `
                 <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
                     <td class="px-6 py-4 font-medium text-gray-900 dark:text-white">
                         ${u.email}
@@ -213,13 +257,22 @@ export function Admin() {
                         }
                     </td>
                     <td class="px-6 py-4">
-                        <button class="toggle-premium-btn px-3 py-1 rounded-full text-xs font-bold transition-colors ${
-                          u.isPremium
-                            ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-200"
-                            : "bg-gray-200 text-gray-600 hover:bg-gray-300"
-                        }" data-id="${u.id}" data-status="${u.isPremium}">
-                            ${u.isPremium ? "Premium" : "Grátis"}
+                        <button class="toggle-premium-btn px-3 py-1 rounded-full text-xs font-bold transition-colors ${statusColor} hover:opacity-80" data-id="${
+          u.id
+        }" data-premium="${u.isPremium}" data-start="${
+          u.premiumStartDate || ""
+        }" data-end="${u.premiumEndDate || ""}">
+                            ${
+                              u.isPremium
+                                ? isExpired
+                                  ? "Expirado"
+                                  : "Premium"
+                                : "Grátis"
+                            }
                         </button>
+                    </td>
+                    <td class="px-6 py-4 text-xs text-gray-500">
+                        ${endDate ? endDate.toLocaleDateString() : "-"}
                     </td>
                     <td class="px-6 py-4 text-right">
                         <button class="view-profile-btn text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium" data-id="${
@@ -229,32 +282,91 @@ export function Admin() {
                         </button>
                     </td>
                 </tr>
-            `
-      )
+            `;
+      })
       .join("");
 
-    // Add Event Listeners for Premium Toggle
+    // --- Lógica do Modal de Assinatura ---
+    const subModal = element.querySelector("#subscription-modal");
+    const subForm = element.querySelector("#subscription-form");
+    const datesContainer = element.querySelector("#dates-container");
+    const statusSelect = subForm.querySelector("select[name='isPremium']");
+
+    // Toggle visibility of dates based on status
+    statusSelect.onchange = () => {
+      if (statusSelect.value === "true") {
+        datesContainer.classList.remove("hidden");
+      } else {
+        datesContainer.classList.add("hidden");
+      }
+    };
+
+    // Quick Date Buttons
+    subForm.querySelectorAll(".quick-date").forEach((btn) => {
+      btn.onclick = () => {
+        const days = parseInt(btn.dataset.days);
+        const start = new Date();
+        const end = new Date();
+        end.setDate(end.getDate() + days);
+
+        subForm.startDate.valueAsDate = start;
+        subForm.endDate.valueAsDate = end;
+      };
+    });
+
+    element.querySelector("#close-sub-modal").onclick = () => {
+      subModal.classList.add("hidden");
+      subModal.classList.remove("flex");
+    };
+
+    subForm.onsubmit = async (e) => {
+      e.preventDefault();
+      const uid = subForm.userId.value;
+      const isPremium = subForm.isPremium.value === "true";
+
+      const updateData = {
+        isPremium: isPremium,
+        premiumStartDate: isPremium ? subForm.startDate.value : null,
+        premiumEndDate: isPremium ? subForm.endDate.value : null,
+      };
+
+      try {
+        await updateDoc(doc(db, "users", uid), updateData);
+        showToast("Assinatura atualizada!");
+        subModal.classList.add("hidden");
+        subModal.classList.remove("flex");
+        loadData();
+      } catch (error) {
+        console.error(error);
+        showToast("Erro ao salvar.", "error");
+      }
+    };
+
+    // Open Modal on Click
     usersTable.querySelectorAll(".toggle-premium-btn").forEach((btn) => {
       btn.onclick = () => {
         const uid = btn.dataset.id;
-        const currentStatus = btn.dataset.status === "true";
-        const newStatus = !currentStatus;
+        const isPremium = btn.dataset.premium === "true";
 
-        showConfirm(
-          `Alterar status do usuário para ${newStatus ? "Premium" : "Grátis"}?`,
-          async () => {
-            try {
-              await updateDoc(doc(db, "users", uid), {
-                isPremium: newStatus,
-              });
-              showToast("Status atualizado com sucesso!");
-              loadData();
-            } catch (error) {
-              console.error(error);
-              showToast("Erro ao atualizar status.", "error");
-            }
-          }
-        );
+        subForm.userId.value = uid;
+        subForm.isPremium.value = isPremium.toString();
+
+        if (isPremium && btn.dataset.start) {
+          subForm.startDate.value = btn.dataset.start;
+          subForm.endDate.value = btn.dataset.end;
+          datesContainer.classList.remove("hidden");
+        } else {
+          subForm.startDate.valueAsDate = new Date();
+          // Default +30 days
+          const d = new Date();
+          d.setDate(d.getDate() + 30);
+          subForm.endDate.valueAsDate = d;
+          datesContainer.classList.add("hidden"); // Hidden initially if free
+          if (isPremium) datesContainer.classList.remove("hidden");
+        }
+
+        subModal.classList.remove("hidden");
+        subModal.classList.add("flex");
       };
     });
 

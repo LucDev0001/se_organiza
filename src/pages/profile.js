@@ -6,6 +6,7 @@ import {
   updateDoc,
   deleteUser,
   signOut,
+  updateProfile,
 } from "../services/firebase.js";
 import { exportData, importData } from "../services/backup.service.js";
 import { showToast, showConfirm } from "../utils/ui.js";
@@ -47,18 +48,30 @@ export function Profile() {
                 </div>
                 <div class="px-6 pb-6 relative">
                     <div class="flex flex-col sm:flex-row items-center sm:items-end -mt-12 mb-4 sm:mb-0 gap-4">
-                        <div class="w-24 h-24 bg-white dark:bg-gray-800 rounded-full p-1 shadow-lg relative z-10">
-                            <div class="w-full h-full bg-indigo-100 dark:bg-indigo-900/50 rounded-full flex items-center justify-center text-indigo-600 text-4xl overflow-hidden">
-                                ${user.photoURL ? `<img src="${user.photoURL}" class="w-full h-full object-cover">` : `<i class="fas fa-user" id="profile-icon"></i>`}
+                        <div class="w-24 h-24 bg-white dark:bg-gray-800 rounded-full p-1 shadow-lg relative z-10 group cursor-pointer" id="profile-image-trigger" title="Alterar foto">
+                            <div id="profile-img-wrapper" class="w-full h-full bg-indigo-100 dark:bg-indigo-900/50 rounded-full flex items-center justify-center text-indigo-600 text-4xl overflow-hidden relative">
+                                ${
+                                  user.photoURL
+                                    ? `<img src="${user.photoURL}" class="w-full h-full object-cover">`
+                                    : `<i class="fas fa-user" id="profile-icon"></i>`
+                                }
+                                <div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <i class="fas fa-camera text-white text-xl"></i>
+                                </div>
                             </div>
+                            <input type="file" id="profile-upload" accept="image/png, image/jpeg, image/webp" class="hidden">
                         </div>
                         <div class="flex-1 text-center sm:text-left mb-2">
                             <h2 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center justify-center sm:justify-start gap-2">
-                                ${user.displayName || 'Usuário'}
+                                ${user.displayName || "Usuário"}
                                 <span id="plan-badge" class="text-xs px-2 py-1 rounded-full bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-300">Free</span>
                             </h2>
-                            <p class="text-gray-500 dark:text-gray-400 text-sm">${user.email}</p>
-                            <p class="text-gray-400 text-xs mt-1" id="member-since">Membro desde ${new Date(user.metadata.creationTime).toLocaleDateString()}</p>
+                            <p class="text-gray-500 dark:text-gray-400 text-sm">${
+                              user.email
+                            }</p>
+                            <p class="text-gray-400 text-xs mt-1" id="member-since">Membro desde ${new Date(
+                              user.metadata.creationTime
+                            ).toLocaleDateString()}</p>
                         </div>
                     </div>
 
@@ -81,15 +94,22 @@ export function Profile() {
             </div>
 
             <!-- Premium CTA -->
-            <div id="premium-cta" class="hidden bg-gradient-to-r from-amber-500 to-orange-600 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden transform hover:scale-[1.01] transition-transform cursor-pointer">
+            <div id="premium-cta" class="hidden bg-gradient-to-r from-amber-500 to-orange-600 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden transform hover:scale-[1.01] transition-transform cursor-pointer mb-6">
                 <div class="absolute right-0 top-0 h-full w-1/2 bg-white/10 skew-x-12 translate-x-10"></div>
                 <div class="relative z-10 flex justify-between items-center">
                     <div>
                         <h3 class="font-bold text-xl mb-1"><i class="fas fa-crown text-yellow-200 mr-2"></i>Seja Premium</h3>
                         <p class="text-white/90 text-sm max-w-md">Desbloqueie relatórios avançados, categorias ilimitadas e suporte prioritário.</p>
+                        <div id="demo-badge" class="hidden mt-2 inline-block bg-white/20 px-2 py-1 rounded text-xs font-bold">Modo Demo Ativo (24h)</div>
                     </div>
                     <button class="bg-white text-orange-600 px-5 py-2 rounded-full text-sm font-bold shadow-sm hover:bg-gray-50 transition-colors whitespace-nowrap">
                         Assinar Agora
+                    </button>
+                </div>
+                <div id="demo-cta-container" class="mt-4 pt-4 border-t border-white/20 hidden">
+                    <p class="text-sm mb-2">Ainda não tem certeza?</p>
+                    <button id="btn-activate-demo" class="w-full bg-white/20 hover:bg-white/30 text-white py-2 rounded-lg text-sm font-bold transition-colors border border-white/40">
+                        <i class="fas fa-clock mr-2"></i> Testar Premium por 24h Grátis
                     </button>
                 </div>
             </div>
@@ -199,7 +219,7 @@ export function Profile() {
     const profileCard = element.querySelector("#profile-card");
     const originalContent = profileCard.innerHTML;
     profileCard.innerHTML = `
-        <div class="animate-pulse flex flex-col items-center space-y-4">
+        <div class="animate-pulse flex flex-col items-center space-y-4 p-6">
             <div class="w-24 h-24 bg-gray-200 dark:bg-gray-700 rounded-full"></div>
             <div class="h-6 w-48 bg-gray-200 dark:bg-gray-700 rounded"></div>
             <div class="h-4 w-32 bg-gray-200 dark:bg-gray-700 rounded"></div>
@@ -212,63 +232,73 @@ export function Profile() {
         getDoc(doc(db, "users", user.uid)),
         getTransactions(),
         getTasks(),
-        getNotes()
+        getNotes(),
       ]);
 
+      const data = docSnap.exists() ? docSnap.data() : { isPremium: false };
+
       if (docSnap.exists()) {
-        const data = docSnap.data();
         form.phone.value = data.phone || "";
         form.gender.value = data.gender || "";
 
         // Restore content structure (re-bind elements if needed, but here we just update values on the form which is outside the skeleton replacement if we were careful, but since we replaced innerHTML of profile-card, we need to restore it first or update logic.
         // Better approach: Update the DOM elements directly after fetching, removing skeleton class if used, or swap content.
+        // Restore content structure
         profileCard.innerHTML = originalContent;
 
         // Re-select elements after innerHTML restore
         const planBadge = element.querySelector("#plan-badge");
         const profileIcon = element.querySelector("#profile-icon");
-        const premiumCta = element.querySelector("#premium-cta");
-        const form = element.querySelector("#profile-form"); // Re-select form inside card
-
-        // Re-populate form values
-        form.phone.value = data.phone || "";
-        form.gender.value = data.gender || "";
 
         // Populate Stats
-        element.querySelector("#stat-transactions").textContent = transactions.length;
+        element.querySelector("#stat-transactions").textContent =
+          transactions.length;
         element.querySelector("#stat-tasks").textContent = tasks.length;
         element.querySelector("#stat-notes").textContent = notes.length;
 
+        // Verifica Demo Mode
+        let isDemo = false;
+        if (data.demoActivatedAt) {
+          const diff =
+            (new Date() - new Date(data.demoActivatedAt)) / (1000 * 60 * 60);
+          if (diff < 24) isDemo = true;
+        }
+
         // Lógica Visual do Plano
-        if (data.isPremium) {
-          planBadge.textContent = "PREMIUM";
-          planBadge.className =
-            "text-xs px-2 py-1 rounded-full bg-yellow-100 text-yellow-800 border border-yellow-200 font-bold";
-          profileIcon.className = "fas fa-crown text-yellow-500";
+        if (data.isPremium || isDemo) {
+          const endDate = data.premiumEndDate
+            ? new Date(data.premiumEndDate).toLocaleDateString("pt-BR")
+            : "Assinatura Ativa";
+
+          planBadge.textContent = isDemo ? "DEMO 24H" : "PREMIUM";
+          planBadge.className = isDemo
+            ? "text-xs px-2 py-1 rounded-full bg-indigo-100 text-indigo-800 border border-indigo-200 font-bold"
+            : "text-xs px-2 py-1 rounded-full bg-yellow-100 text-yellow-800 border border-yellow-200 font-bold";
+
+          if (profileIcon)
+            profileIcon.className = isDemo
+              ? "fas fa-stopwatch text-indigo-500"
+              : "fas fa-crown text-yellow-500";
+
+          // Adiciona info de validade abaixo do email
+          const memberSince = element.querySelector("#member-since");
+          if (memberSince) {
+            const validText = isDemo
+              ? "Expira em breve"
+              : `Válido até: ${endDate}`;
+            memberSince.innerHTML += `<br><span class="${
+              isDemo ? "text-indigo-600" : "text-yellow-600"
+            } dark:text-yellow-400 font-bold"><i class="fas fa-calendar-check"></i> ${validText}</span>`;
+          }
+
           premiumCta.classList.add("hidden");
         } else {
-          premiumCta.classList.remove("hidden");
-
-          // Ação do botão Premium (Simulação de Checkout)
-          premiumCta.onclick = () => {
-            showConfirm(
-              `
-                    <div class="text-center">
-                        <h3 class="text-xl font-bold text-indigo-600 mb-2">Plano Premium</h3>
-                        <p class="mb-4 text-sm">Apoie o projeto e desbloqueie tudo por apenas <strong>R$ 9,90</strong> (pagamento único).</p>
-                        <div class="bg-gray-100 dark:bg-gray-700 p-3 rounded mb-2 font-mono text-sm select-all">11661221408</div>
-                        <p class="text-xs text-gray-500">Chave Pix (CPF). Envie o comprovante para o suporte para ativação imediata.</p>
-                    </div>
-                `,
-              () => {
-                window.open(
-                  `https://wa.me/5511999999999?text=Olá, fiz o pix para o Premium do Se Organiza! Meu email é ${user.email}`,
-                  "_blank"
-                );
-              }
-            );
-          };
+          setupFreeUserView(data.demoActivatedAt);
         }
+      } else {
+        // Fallback se o documento do usuário não existir
+        profileCard.innerHTML = originalContent;
+        setupFreeUserView(null);
       }
     } catch (error) {
       console.error("Erro ao carregar perfil:", error);
@@ -276,7 +306,108 @@ export function Profile() {
     }
   };
 
+  const setupFreeUserView = (hasUsedDemo) => {
+    premiumCta.classList.remove("hidden");
+
+    // Configura botão de Demo se nunca usou
+    const demoContainer = element.querySelector("#demo-cta-container");
+    const btnDemo = element.querySelector("#btn-activate-demo");
+
+    if (!hasUsedDemo) {
+      demoContainer.classList.remove("hidden");
+      btnDemo.onclick = (e) => {
+        e.stopPropagation(); // Evita clique no card pai
+        showConfirm(
+          "Ativar o Modo Demonstração? Você terá acesso a todos os recursos Premium por 24 horas.",
+          async () => {
+            try {
+              await updateDoc(doc(db, "users", user.uid), {
+                demoActivatedAt: new Date().toISOString(),
+              });
+
+              if (window.confetti) {
+                window.confetti({
+                  particleCount: 150,
+                  spread: 70,
+                  origin: { y: 0.6 },
+                  colors: ["#4F46E5", "#F59E0B", "#10B981"],
+                });
+              }
+
+              showToast("Modo Demo ativado! Aproveite.");
+              setTimeout(() => window.location.reload(), 2000);
+            } catch (err) {
+              console.error(err);
+              showToast("Erro ao ativar demo.", "error");
+            }
+          }
+        );
+      };
+    }
+
+    premiumCta.onclick = () => {
+      window.location.hash = "/plans";
+    };
+  };
+
   loadProfile();
+
+  // Lógica de Upload de Foto (Delegação de Eventos)
+  element.addEventListener("click", (e) => {
+    if (e.target.closest("#profile-image-trigger")) {
+      const input = element.querySelector("#profile-upload");
+      if (input) input.click();
+    }
+  });
+
+  element.addEventListener("change", async (e) => {
+    if (e.target.id === "profile-upload") {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      // Validação de tamanho (2MB)
+      if (file.size > 5 * 1024 * 1024) {
+        showToast("A imagem original deve ter no máximo 5MB.", "error");
+        return;
+      }
+
+      try {
+        showToast("Processando imagem...", "info");
+
+        // Converte e comprime a imagem para Base64 (Data URL)
+        const photoURL = await compressImage(file);
+
+        // Verifica se o resultado final cabe no Firestore (limite de segurança ~900KB)
+        if (photoURL.length > 900000) {
+          showToast(
+            "A imagem é muito complexa. Tente outra mais simples.",
+            "error"
+          );
+          return;
+        }
+
+        // Atualiza Auth e Firestore
+        await updateProfile(user, { photoURL });
+        await updateDoc(doc(db, "users", user.uid), { photoURL });
+
+        // Atualiza UI imediatamente
+        const imgWrapper = element.querySelector("#profile-img-wrapper");
+        if (imgWrapper) {
+          imgWrapper.innerHTML = `
+            <img src="${photoURL}" class="w-full h-full object-cover">
+            <div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <i class="fas fa-camera text-white text-xl"></i>
+            </div>
+          `;
+        }
+
+        showToast("Foto de perfil atualizada!");
+      } catch (error) {
+        console.error("Erro no upload:", error);
+        showToast("Erro ao atualizar foto.", "error");
+      }
+    }
+  });
 
   // Save Data
   // Re-attach listener because of innerHTML replacement in loadProfile
@@ -408,12 +539,55 @@ export function Profile() {
 
   // Theme Toggle Logic
   const themeToggle = element.querySelector("#theme-toggle-profile");
-  if(themeToggle) {
-      themeToggle.checked = document.documentElement.classList.contains("dark");
-      themeToggle.addEventListener("change", () => {
-          window.toggleTheme();
-      });
+  if (themeToggle) {
+    themeToggle.checked = document.documentElement.classList.contains("dark");
+    themeToggle.addEventListener("change", () => {
+      window.toggleTheme();
+    });
   }
 
   return element;
+}
+
+// Função auxiliar para comprimir imagem e converter para Base64
+function compressImage(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target.result;
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+
+        // Redimensiona para no máximo 300x300 (suficiente para avatar)
+        const MAX_WIDTH = 300;
+        const MAX_HEIGHT = 300;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Comprime para JPEG com qualidade 0.7
+        resolve(canvas.toDataURL("image/jpeg", 0.7));
+      };
+      img.onerror = (err) => reject(err);
+    };
+    reader.onerror = (err) => reject(err);
+  });
 }

@@ -1,4 +1,11 @@
-import { auth, onAuthStateChanged } from "./services/firebase.js";
+import {
+  auth,
+  onAuthStateChanged,
+  db,
+  doc,
+  getDoc,
+  updateDoc,
+} from "./services/firebase.js";
 import { Login } from "./pages/login.js";
 import { Register } from "./pages/register.js";
 import { ForgotPassword } from "./pages/forgot-password.js";
@@ -8,6 +15,7 @@ import { Finance } from "./pages/finance.js";
 import { Admin } from "./pages/admin.js";
 import { Notes } from "./pages/notes.js";
 import { About } from "./pages/about.js";
+import { Plans } from "./pages/plans.js";
 import { Terms, Privacy } from "./pages/legal.js";
 import { Profile } from "./pages/profile.js";
 import { Notifications, updateGlobalBadge } from "./pages/notifications.js";
@@ -39,6 +47,7 @@ const routes = {
   "/admin": "admin",
   "/notes": "notes",
   "/about": "about",
+  "/plans": "plans",
   "/terms": "terms",
   "/privacy": "privacy",
   "/profile": "profile",
@@ -110,6 +119,8 @@ async function router() {
     app.appendChild(Notes());
   } else if (hash === "/about") {
     app.appendChild(About());
+  } else if (hash === "/plans") {
+    app.appendChild(Plans());
   } else if (hash === "/terms") {
     app.appendChild(Terms());
   } else if (hash === "/privacy") {
@@ -130,10 +141,61 @@ async function router() {
 // Inicialização
 window.addEventListener("hashchange", router);
 
-onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, async (user) => {
   state.user = user;
   state.isAdmin = user && user.email === ADMIN_EMAIL;
-  if (user) initNotifications(user); // Inicializa verificação de notificações
+
+  if (user) {
+    initNotifications(user);
+
+    // Verificação de Assinatura Premium
+    try {
+      const userDocRef = doc(db, "users", user.uid);
+      const userDoc = await getDoc(userDocRef);
+
+      if (userDoc.exists()) {
+        const data = userDoc.data();
+
+        // Lógica de Modo Demonstração (24h)
+        let isDemoActive = false;
+        if (data.demoActivatedAt) {
+          const demoStart = new Date(data.demoActivatedAt);
+          const now = new Date();
+          const diffHours = (now - demoStart) / (1000 * 60 * 60);
+          if (diffHours < 24) {
+            isDemoActive = true;
+            // Injeta flag temporária no objeto user para uso na sessão
+            user.isDemo = true;
+          }
+        }
+
+        if (data.isPremium && data.premiumEndDate && !isDemoActive) {
+          const today = new Date();
+          const endDate = new Date(data.premiumEndDate);
+          const diffTime = endDate - today;
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+          if (diffDays < 0) {
+            // Expirou
+            await updateDoc(userDocRef, { isPremium: false });
+            showToast("Sua assinatura Premium expirou.", "error");
+          } else if (diffDays <= 5) {
+            // Vence em breve (mostra apenas uma vez por sessão)
+            if (!sessionStorage.getItem("expiryWarned")) {
+              showToast(
+                `Sua assinatura vence em ${diffDays} dias. Renove para continuar aproveitando!`,
+                "info"
+              );
+              sessionStorage.setItem("expiryWarned", "true");
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Erro ao verificar assinatura", e);
+    }
+  }
+
   router();
 });
 

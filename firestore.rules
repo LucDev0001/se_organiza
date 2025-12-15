@@ -9,48 +9,51 @@ service cloud.firestore {
 
     // Helper function to check if the user is the admin
     function isAdmin() {
-      // WARNING: This is based on email, which can be spoofed on the client-side.
-      // For production, use custom claims set on the backend (e.g., Firebase Cloud Functions).
       return request.auth.token.email == 'lucianosantosseverino@gmail.com';
+    }
+    
+    // Helper to check if user is trying to modify restricted fields
+    function isModifyingRestrictedFields() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasAny(['isPremium', 'premiumEndDate', 'premiumStartDate']);
     }
 
     // Users collection rules
     match /users/{userId} {
       allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
       allow create: if isAuthenticated() && request.auth.uid == userId; // A user can create their own user document
-      allow update: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      // Allow update if Admin OR (User owns doc AND is NOT modifying restricted premium fields)
+      allow update: if isAuthenticated() && (
+        isAdmin() || 
+        (request.auth.uid == userId && !isModifyingRestrictedFields())
+      );
       allow delete: if false;
     }
 
-    // Transactions collection rules
+    // Data collections rules
     match /transactions/{transactionId} {
       allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
       allow create: if isAuthenticated() && request.auth.uid == request.resource.data.userId;
       allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
     }
 
-    // Notes collection rules
     match /notes/{noteId} {
       allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
       allow create: if isAuthenticated() && request.auth.uid == request.resource.data.userId;
       allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
     }
 
-    // Tasks collection rules
     match /tasks/{taskId} {
       allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
       allow create: if isAuthenticated() && request.auth.uid == request.resource.data.userId;
       allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
     }
 
-    // Categories collection rules
     match /categories/{categoryId} {
       allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
       allow create: if isAuthenticated() && request.auth.uid == request.resource.data.userId;
       allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
     }
 
-    // Savings Goals collection rules
     match /savings_goals/{goalId} {
       allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
       allow create: if isAuthenticated() && request.auth.uid == request.resource.data.userId;
