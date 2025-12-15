@@ -1,4 +1,4 @@
-const CACHE_NAME = "se-organiza-v3"; // INCREMENTE ESTA VERSÃO PARA FORÇAR ATUALIZAÇÃO
+const CACHE_NAME = "se-organiza-v4"; // INCREMENTE ESTA VERSÃO PARA FORÇAR ATUALIZAÇÃO
 
 const STATIC_ASSETS = [
   "./",
