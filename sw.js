@@ -31,7 +31,7 @@ messaging.onBackgroundMessage((payload) => {
   self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
-const CACHE_NAME = "se-organiza-v10";
+const CACHE_NAME = "se-organiza-v11";
 const ASSETS = [
   "./",
   "./index.html",
