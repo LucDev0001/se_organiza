@@ -1,0 +1,165 @@
+import {
+  auth,
+  createUserWithEmailAndPassword,
+  updateProfile,
+  sendEmailVerification,
+} from "../services/firebase.js";
+import { showToast } from "../utils/ui.js";
+import { db, doc, setDoc } from "../services/firebase.js"; // Assuming we need to create user doc
+
+export function Register() {
+  const element = document.createElement("div");
+  element.className =
+    "min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4 sm:px-6 lg:px-8 transition-colors duration-200";
+
+  const renderForm = () => {
+    element.innerHTML = `
+        <div class="max-w-md w-full space-y-8 bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700">
+            <div class="text-center">
+                <div class="mx-auto h-16 w-16 bg-gradient-to-tr from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center mb-6 shadow-lg shadow-indigo-500/30">
+                    <i class="fas fa-user-plus text-3xl text-white"></i>
+                </div>
+                <h2 class="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">
+                    Crie sua conta
+                </h2>
+                <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                    Comece a organizar sua vida financeira hoje
+                </p>
+            </div>
+            
+            <form class="mt-8 space-y-6" id="register-form">
+                <div class="space-y-4">
+                    <div>
+                        <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nome Completo</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-user text-gray-400"></i>
+                            </div>
+                            <input id="name" name="name" type="text" required 
+                                class="appearance-none rounded-lg relative block w-full pl-10 px-3 py-3 border border-gray-300 placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white transition-all" 
+                                placeholder="Seu nome">
+                        </div>
+                    </div>
+                    <div>
+                        <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-envelope text-gray-400"></i>
+                            </div>
+                            <input id="email" name="email" type="email" autocomplete="email" required 
+                                class="appearance-none rounded-lg relative block w-full pl-10 px-3 py-3 border border-gray-300 placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white transition-all" 
+                                placeholder="seu@email.com">
+                        </div>
+                    </div>
+                    <div>
+                        <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Senha</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-lock text-gray-400"></i>
+                            </div>
+                            <input id="password" name="password" type="password" autocomplete="new-password" required minlength="6"
+                                class="appearance-none rounded-lg relative block w-full pl-10 pr-10 px-3 py-3 border border-gray-300 placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white transition-all" 
+                                placeholder="Mínimo 6 caracteres">
+                            <button type="button" id="toggle-password" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-indigo-600 cursor-pointer focus:outline-none transition-colors">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="confirm-password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Confirmar Senha</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-lock text-gray-400"></i>
+                            </div>
+                            <input id="confirm-password" name="confirm-password" type="password" autocomplete="new-password" required 
+                                class="appearance-none rounded-lg relative block w-full pl-10 px-3 py-3 border border-gray-300 placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white transition-all" 
+                                placeholder="Repita a senha">
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" id="btn-register" class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50">
+                    <span class="absolute left-0 inset-y-0 flex items-center pl-3">
+                        <i class="fas fa-user-plus group-hover:text-indigo-200 transition-colors"></i>
+                    </span>
+                    Criar Conta
+                </button>
+            </form>
+
+            <p class="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
+                Já tem uma conta?
+                <a href="#/login" class="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 hover:underline transition-colors">
+                    Faça login
+                </a>
+            </p>
+        </div>
+    `;
+
+    // Toggle Password Visibility
+    const toggleBtn = element.querySelector("#toggle-password");
+    const passInput = element.querySelector("#password");
+    toggleBtn.onclick = () => {
+      const type =
+        passInput.getAttribute("type") === "password" ? "text" : "password";
+      passInput.setAttribute("type", type);
+      toggleBtn.innerHTML = `<i class="fas ${
+        type === "password" ? "fa-eye" : "fa-eye-slash"
+      }"></i>`;
+    };
+
+    const form = element.querySelector("#register-form");
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const name = form.name.value;
+      const email = form.email.value;
+      const password = form.password.value;
+      const confirmPassword = form["confirm-password"].value;
+
+      if (password !== confirmPassword) {
+        showToast("As senhas não coincidem.", "error");
+        return;
+      }
+
+      try {
+        const userCredential = await createUserWithEmailAndPassword(
+          auth,
+          email,
+          password
+        );
+        const user = userCredential.user;
+
+        await updateProfile(user, { displayName: name });
+
+        // Create user document in Firestore
+        try {
+          await setDoc(doc(db, "users", user.uid), {
+            email: user.email,
+            displayName: name,
+            createdAt: new Date().toISOString(),
+            isPremium: false,
+          });
+        } catch (dbError) {
+          console.warn(
+            "Aviso: Não foi possível salvar dados adicionais do perfil no momento.",
+            dbError
+          );
+          // Não interrompe o fluxo, pois a conta de autenticação foi criada
+        }
+
+        await sendEmailVerification(user);
+        showToast("Conta criada! Verifique seu email.", "info");
+        window.location.hash = "/dashboard";
+      } catch (error) {
+        console.error(error);
+        let msg = "Erro ao criar conta.";
+        if (error.code === "auth/email-already-in-use")
+          msg = "Este email já está em uso.";
+        if (error.code === "auth/weak-password") msg = "A senha é muito fraca.";
+        showToast(msg, "error");
+      }
+    });
+  };
+
+  renderForm();
+  return element;
+}
