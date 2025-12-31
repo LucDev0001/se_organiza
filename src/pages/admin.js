@@ -103,7 +103,6 @@ export function Admin() {
         await signInWithEmailAndPassword(auth, email, password);
         showToast("Login realizado! Carregando...", "success");
       } catch (error) {
-        showToast("Erro de autenticação.", "error");
         console.error("Admin Login Error:", error);
         let msg = "Erro de autenticação.";
         if (
@@ -644,7 +643,8 @@ export function Admin() {
                     <td class="px-6 py-4 text-xs text-gray-500">
                         ${endDate ? endDate.toLocaleDateString() : "-"}
                     </td>
-                    <td class="px-6 py-4 text-right flex justify-end items-center gap-2">
+                    <td class="px-6 py-4 text-right">
+                        <div class="flex justify-end items-center gap-2">
                         <button class="toggle-admin-btn text-yellow-500 hover:text-yellow-600" title="${
                           u.isAdmin ? "Remover Admin" : "Tornar Admin"
                         }" data-id="${u.id}" data-admin="${u.isAdmin || false}">
@@ -671,6 +671,7 @@ export function Admin() {
                         }" title="Ver Detalhes">
                             <i class="fas fa-eye"></i>
                         </button>
+                        </div>
                     </td>
                 </tr>
             `;
